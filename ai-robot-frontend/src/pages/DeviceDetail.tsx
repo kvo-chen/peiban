@@ -1,7 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { 
+  Card, 
+  Row, 
+  Col, 
+  Button, 
+  Table, 
+  Modal, 
+  Form, 
+  Input, 
+  Select, 
+  Tag, 
+  Space, 
+  message, 
+  Spin, 
+  Result,
+  List, 
+  Avatar,
+  Typography
+} from 'antd';
+import { 
+  ArrowLeftOutlined, 
+  PlusOutlined, 
+  DeleteOutlined, 
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  UserOutlined,
+  RobotOutlined,
+  SendOutlined,
+  MessageOutlined
+} from '@ant-design/icons';
 import { deviceApi, actionApi, deviceActionApi, chatApi } from '../services/api';
-import { Device, Action, DeviceAction, ChatRequest, Conversation } from '../types';
+import type { Device, Action, DeviceAction, ChatRequest, Conversation } from '../types';
+
+const { Title, Text } = Typography;
+const { Option } = Select;
+const { TextArea } = Input;
 
 const DeviceDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -11,9 +45,11 @@ const DeviceDetail: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
-  const [newDeviceAction, setNewDeviceAction] = useState({ actionId: '', prompt: '' });
+  const [form] = Form.useForm();
   const [chatMessage, setChatMessage] = useState<string>('');
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [sending, setSending] = useState<boolean>(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // 获取设备详情
   const fetchDeviceDetail = async () => {
@@ -21,7 +57,11 @@ const DeviceDetail: React.FC = () => {
     
     try {
       const response = await deviceApi.getDevice(id);
-      setDevice(response.device);
+      // 添加缺少的userId属性
+      setDevice({
+        ...response.device,
+        userId: 1 // 假设默认userId为1，实际应该从response中获取
+      });
     } catch (err: any) {
       setError('获取设备详情失败，请稍后重试');
     }
@@ -79,44 +119,59 @@ const DeviceDetail: React.FC = () => {
     fetchData();
   }, [id]);
 
+  // 滚动到聊天底部
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [conversations]);
+
   // 添加设备动作映射
-  const handleAddDeviceAction = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddDeviceAction = async (values: { actionId: string; prompt: string }) => {
     if (!id) return;
     
     try {
       await deviceActionApi.addDeviceAction({
         deviceId: id,
-        actionId: newDeviceAction.actionId,
-        prompt: newDeviceAction.prompt
+        actionId: values.actionId,
+        prompt: values.prompt
       });
       
       setIsAddModalOpen(false);
-      setNewDeviceAction({ actionId: '', prompt: '' });
+      form.resetFields();
+      message.success('动作映射添加成功');
       fetchDeviceActions();
     } catch (err: any) {
-      setError('添加设备动作映射失败，请稍后重试');
+      message.error('添加设备动作映射失败，请稍后重试');
     }
   };
 
   // 删除设备动作映射
   const handleDeleteDeviceAction = async (deviceActionId: string) => {
-    if (window.confirm('确定要删除该动作映射吗？')) {
-      try {
-        await deviceActionApi.deleteDeviceAction(deviceActionId);
-        fetchDeviceActions();
-      } catch (err: any) {
-        setError('删除设备动作映射失败，请稍后重试');
+    Modal.confirm({
+      title: '确认删除',
+      content: '确定要删除该动作映射吗？此操作不可恢复。',
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await deviceActionApi.deleteDeviceAction(deviceActionId);
+          message.success('动作映射删除成功');
+          fetchDeviceActions();
+        } catch (err: any) {
+          message.error('删除设备动作映射失败，请稍后重试');
+        }
       }
-    }
+    });
   };
 
   // 发送AI对话消息
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSendMessage = async () => {
     if (!id || !chatMessage.trim()) return;
     
     try {
+      setSending(true);
       const chatRequest: ChatRequest = {
         deviceId: id,
         message: chatMessage.trim()
@@ -128,195 +183,475 @@ const DeviceDetail: React.FC = () => {
       setConversations(prev => [...prev, response.conversation]);
       setChatMessage('');
     } catch (err: any) {
-      setError('发送消息失败，请稍后重试');
+      message.error('发送消息失败，请稍后重试');
+    } finally {
+      setSending(false);
     }
   };
 
+  // 状态标签配置
+  const getStatusTag = (status: string) => {
+    const statusConfig = {
+      online: {
+        color: 'success',
+        text: '在线',
+        icon: <CheckCircleOutlined />
+      },
+      offline: {
+        color: 'error',
+        text: '离线',
+        icon: <CloseCircleOutlined />
+      },
+      unknown: {
+        color: 'default',
+        text: '未知',
+        icon: <CloseCircleOutlined />
+      }
+    };
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.unknown;
+    return (
+      <Tag 
+        color={config.color} 
+        icon={config.icon}
+        style={{ 
+          fontSize: '14px',
+          fontWeight: '500',
+          padding: '4px 12px',
+          borderRadius: '12px',
+        }}
+      >
+        {config.text}
+      </Tag>
+    );
+  };
+
+  // 设备动作映射表格列配置
+  const deviceActionColumns = [
+    {
+      title: '动作名称',
+      dataIndex: 'actionId',
+      key: 'actionId',
+      render: (action: Action) => (
+        <Text strong>{action.name}</Text>
+      )
+    },
+    {
+      title: '动作描述',
+      dataIndex: 'actionId',
+      key: 'description',
+      render: (action: Action) => (
+        <Text type="secondary">{action.description}</Text>
+      )
+    },
+    {
+      title: '触发提示词',
+      dataIndex: 'prompt',
+      key: 'prompt',
+      ellipsis: true
+    },
+    {
+      title: '动作时长',
+      dataIndex: 'actionId',
+      key: 'duration',
+      render: (action: Action) => (
+        <Tag color="blue">{action.duration}秒</Tag>
+      )
+    },
+    {
+      title: '操作',
+      key: 'action',
+      render: (_text: any, record: DeviceAction) => (
+        <Button 
+            danger 
+            icon={<DeleteOutlined />} 
+            size="small"
+            onClick={() => handleDeleteDeviceAction(String(record.id))}
+          >
+            删除
+          </Button>
+      )
+    }
+  ];
+
   if (loading) {
-    return <div className="loading">加载中...</div>;
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: 'calc(100vh - 120px)' 
+      }}>
+        <Spin size="large" tip="加载中..." />
+      </div>
+    );
   }
 
   if (!device) {
-    return <div className="error-message">设备不存在</div>;
+    return (
+      <Result
+        status="404"
+        title="设备不存在"
+        subTitle="该设备可能已被删除或不存在"
+        extra={
+          <Link to="/">
+            <Button type="primary" icon={<ArrowLeftOutlined />}>
+              返回设备列表
+            </Button>
+          </Link>
+        }
+      />
+    );
   }
 
   return (
-    <div className="device-detail">
-      <div className="device-detail-header">
-        <div>
-          <h2>{device.deviceName}</h2>
-          <p className="device-type">类型：{device.deviceType}</p>
-          <p className="device-status">
-            状态：<span className={`status-badge ${device.status}`}>
-              {device.status === 'online' ? '在线' : '离线'}
-            </span>
-          </p>
-        </div>
-        <Link to="/" className="back-button">
-          返回设备列表
-        </Link>
+    <div style={{ 
+      padding: '24px',
+      animation: 'fadeIn 0.5s ease-out'
+    }}>
+      {/* 页面头部 */}
+      <div style={{ marginBottom: '24px' }}>
+        <Row align="middle" gutter={[16, 16]}>
+          <Col>
+            <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+              <ArrowLeftOutlined /> 
+              <Text strong>返回设备列表</Text>
+            </Link>
+            <Title level={2} style={{ margin: 0, color: 'var(--color-text-primary)' }}>
+              {device.deviceName}
+            </Title>
+          </Col>
+        </Row>
       </div>
 
-      {error && <div className="error-message">{error}</div>}
+      <div style={{ marginBottom: '24px' }}>
+        {/* 设备基本信息卡片 */}
+        <Card 
+          style={{ 
+            marginBottom: '24px',
+            border: 'none',
+            boxShadow: 'var(--shadow-sm)',
+            backgroundColor: 'var(--color-bg)'
+          }}
+          bodyStyle={{ padding: '24px' }}
+        >
+          <Row gutter={[24, 24]}>
+            <Col xs={24} sm={12} md={8}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ 
+                  width: '80px', 
+                  height: '80px', 
+                  borderRadius: '16px', 
+                  backgroundColor: 'var(--color-primary-light)',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}>
+                  <RobotOutlined style={{ fontSize: '40px', color: 'var(--color-primary)' }} />
+                </div>
+                <div>
+                  <Title level={3} style={{ margin: 0 }}>{device.deviceName}</Title>
+                  <Text type="secondary">{device.deviceType}</Text>
+                </div>
+              </div>
+            </Col>
+            <Col xs={24} sm={12} md={8}>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'center', 
+                height: '100%'
+              }}>
+                <Text strong style={{ fontSize: '14px', marginBottom: '8px' }}>设备状态</Text>
+                {getStatusTag(device.status)}
+              </div>
+            </Col>
+            <Col xs={24} sm={12} md={8}>
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'center', 
+                height: '100%'
+              }}>
+                <Text strong style={{ fontSize: '14px', marginBottom: '8px' }}>创建时间</Text>
+                <Text>{new Date(device.createdAt).toLocaleString()}</Text>
+              </div>
+            </Col>
+          </Row>
+        </Card>
 
-      <div className="device-detail-content">
         {/* 设备动作配置 */}
-        <div className="device-actions-section">
-          <div className="section-header">
-            <h3>设备动作配置</h3>
-            <button 
-              className="add-device-action-button"
-              onClick={() => setIsAddModalOpen(true)}
-            >
-              添加动作映射
-            </button>
-          </div>
-
-          <div className="device-action-list">
-            {deviceActions.length === 0 ? (
-              <div className="no-device-actions">
-                <p>还没有添加动作映射</p>
-                <button 
-                  className="add-device-action-button"
+        <Card 
+          title={
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>设备动作配置</span>
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                size="middle"
+                onClick={() => setIsAddModalOpen(true)}
+                style={{ fontWeight: '500' }}
+              >
+                添加动作映射
+              </Button>
+            </div>
+          }
+          style={{ 
+            marginBottom: '24px',
+            border: 'none',
+            boxShadow: 'var(--shadow-sm)',
+            backgroundColor: 'var(--color-bg)'
+          }}
+          bodyStyle={{ padding: '24px' }}
+        >
+          {deviceActions.length === 0 ? (
+            <Result
+              status="info"
+              title="暂无动作映射"
+              subTitle="还没有为该设备添加动作映射，点击下方按钮添加第一个映射"
+              extra={
+                <Button 
+                  type="primary" 
+                  icon={<PlusOutlined />}
                   onClick={() => setIsAddModalOpen(true)}
                 >
                   添加第一个动作映射
-                </button>
-              </div>
-            ) : (
-              <table className="device-action-table">
-                <thead>
-                  <tr>
-                    <th>动作名称</th>
-                    <th>触发提示词</th>
-                    <th>动作时长</th>
-                    <th>操作</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {deviceActions.map(da => (
-                    <tr key={da._id}>
-                      <td>{da.actionId.name}</td>
-                      <td>{da.prompt}</td>
-                      <td>{da.actionId.duration}秒</td>
-                      <td>
-                        <button 
-                          className="action-button delete"
-                          onClick={() => handleDeleteDeviceAction(da._id)}
-                        >
-                          删除
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-        </div>
+                </Button>
+              }
+            />
+          ) : (
+            <Table 
+              columns={deviceActionColumns} 
+              dataSource={deviceActions} 
+              rowKey="_id"
+              pagination={false}
+              scroll={{ x: 800 }}
+              style={{ backgroundColor: 'var(--color-bg)' }}
+            />
+          )}
+        </Card>
 
         {/* AI对话 */}
-        <div className="chat-section">
-          <h3>AI对话</h3>
-          <div className="chat-container">
-            <div className="chat-history">
-              {conversations.length === 0 ? (
-                <div className="no-chat-history">
-                  <p>还没有对话记录</p>
-                  <p>开始和你的机器人聊天吧！</p>
-                </div>
-              ) : (
-                conversations.map(conv => (
-                  <div key={conv._id} className="chat-message">
-                    <div className="user-message">
-                      <strong>你：</strong>{conv.message}
-                    </div>
-                    <div className="ai-response">
-                      <strong>AI：</strong>{conv.response}
-                      {conv.actionTriggered && (
-                        <div className="action-triggered">
-                          <span className="action-icon">🤖</span>
-                          <span>触发动作</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
+        <Card 
+          title={
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MessageOutlined /> AI对话
             </div>
-            
-            <form onSubmit={handleSendMessage} className="chat-input-form">
-              <input
-                type="text"
-                placeholder="输入消息..."
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-                required
-                className="chat-input"
+          }
+          style={{ 
+            marginBottom: '24px',
+            border: 'none',
+            boxShadow: 'var(--shadow-sm)',
+            backgroundColor: 'var(--color-bg)'
+          }}
+          bodyStyle={{ padding: '24px' }}
+        >
+          <div 
+            ref={chatContainerRef}
+            style={{ 
+              height: '400px', 
+              overflowY: 'auto', 
+              padding: '16px', 
+              backgroundColor: 'var(--color-bg-light)',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: '16px',
+              border: '1px solid var(--color-border)'
+            }}
+          >
+            {conversations.length === 0 ? (
+              <div style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                height: '100%',
+                color: 'var(--color-text-tertiary)'
+              }}>
+                <RobotOutlined style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.5 }} />
+                <Text type="secondary">还没有对话记录</Text>
+                <Text type="secondary">开始和你的机器人聊天吧！</Text>
+              </div>
+            ) : (
+              <List
+                dataSource={conversations}
+                renderItem={(item) => (
+                  <List.Item key={item.id} style={{ padding: '8px 0', animation: 'fadeIn var(--transition-fast) ease-out' }}>
+                    <List.Item.Meta
+                      avatar={
+                        <Avatar 
+                          icon={<UserOutlined />} 
+                          style={{ 
+                            backgroundColor: 'var(--color-primary)',
+                            transition: 'all var(--transition-fast)',
+                            transform: 'scale(1)',
+                          }} 
+                        />
+                      }
+                      title={
+                        <div style={{ marginBottom: '8px', opacity: 0, animation: 'fadeIn var(--transition-fast) ease-out 0.1s forwards' }}>
+                          <Text strong>你：</Text>
+                          <Text>{item.message}</Text>
+                        </div>
+                      }
+                      description={
+                        <div>
+                          <div style={{ marginBottom: '4px', opacity: 0, animation: 'fadeIn var(--transition-fast) ease-out 0.2s forwards' }}>
+                            <Text strong>AI：</Text>
+                            <Text>{item.response}</Text>
+                          </div>
+                          {item.actionTriggered && (
+                            <div style={{ 
+                              display: 'inline-flex', 
+                              alignItems: 'center', 
+                              gap: '4px',
+                              marginTop: '4px',
+                              padding: '2px 8px',
+                              backgroundColor: 'var(--color-warning-light)',
+                              color: 'var(--color-warning)',
+                              borderRadius: '12px',
+                              fontSize: '12px',
+                              opacity: 0,
+                              animation: 'fadeIn var(--transition-fast) ease-out 0.3s forwards',
+                              transition: 'all var(--transition-fast)',
+                            }}>
+                              <RobotOutlined /> 触发动作
+                            </div>
+                          )}
+                        </div>
+                      }
+                    />
+                  </List.Item>
+                )}
               />
-              <button type="submit" className="send-button">发送</button>
-            </form>
+            )}
           </div>
-        </div>
+          
+          <Form
+            layout="vertical"
+            onFinish={handleSendMessage}
+          >
+            <Row gutter={[16, 16]} align="bottom">
+              <Col flex={1}>
+                <Form.Item
+                  name="message"
+                  rules={[{ required: true, message: '请输入消息内容' }]}
+                >
+                  <TextArea
+                    value={chatMessage}
+                    onChange={(e) => setChatMessage(e.target.value)}
+                    placeholder="输入消息..."
+                    autoSize={{ minRows: 1, maxRows: 4 }}
+                    onPressEnter={() => handleSendMessage()}
+                  />
+                </Form.Item>
+              </Col>
+              <Col>
+                <Button 
+                  type="primary" 
+                  icon={<SendOutlined />} 
+                  size="large"
+                  onClick={handleSendMessage}
+                  loading={sending}
+                  disabled={!chatMessage.trim()}
+                  style={{ 
+                    height: '40px',
+                    fontWeight: '600'
+                  }}
+                >
+                  发送
+                </Button>
+              </Col>
+            </Row>
+          </Form>
+        </Card>
       </div>
 
-      {/* 添加设备动作映射模态框 */}
-      {isAddModalOpen && (
-        <div className="modal-overlay">
-          <div className="modal">
-            <div className="modal-header">
-              <h3>添加动作映射</h3>
-              <button 
-                className="close-button"
-                onClick={() => setIsAddModalOpen(false)}
+      {/* 添加动作映射模态框 */}
+      <Modal
+        title="添加动作映射"
+        open={isAddModalOpen}
+        onCancel={() => setIsAddModalOpen(false)}
+        footer={null}
+        centered
+        width={500}
+        closeIcon={false}
+      >
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleAddDeviceAction}
+          initialValues={{
+            actionId: '',
+            prompt: ''
+          }}
+        >
+          <Form.Item
+            name="actionId"
+            label={<span style={{ fontWeight: '600', fontSize: '14px' }}>选择动作</span>}
+            rules={[{ required: true, message: '请选择一个动作' }]}
+          >
+            <Select 
+              placeholder="请选择动作"
+              size="large"
+              style={{ width: '100%', height: '48px' }}
+            >
+              {actions.map(action => (
+                <Option key={action.id} value={action.id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{action.name}</span>
+                    <Tag color="blue">{action.duration}秒</Tag>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--color-text-tertiary)' }}>
+                    {action.description}
+                  </div>
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          
+          <Form.Item
+            name="prompt"
+            label={<span style={{ fontWeight: '600', fontSize: '14px' }}>触发提示词</span>}
+            rules={[
+              { required: true, message: '请输入触发提示词' },
+              { min: 2, message: '提示词长度不能少于2个字符' },
+              { max: 100, message: '提示词长度不能超过100个字符' }
+            ]}
+          >
+            <Input 
+              placeholder="例如：前进、左转、趴下等"
+              size="large"
+              style={{ height: '48px' }}
+            />
+          </Form.Item>
+          
+          <Form.Item style={{ marginTop: '24px' }}>
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                size="large"
+                block
+                style={{ 
+                  height: '48px',
+                  fontSize: '16px',
+                  fontWeight: '600'
+                }}
               >
-                ×
-              </button>
-            </div>
-            <form onSubmit={handleAddDeviceAction}>
-              <div className="form-group">
-                <label htmlFor="actionId">选择动作</label>
-                <select
-                  id="actionId"
-                  value={newDeviceAction.actionId}
-                  onChange={(e) => setNewDeviceAction({ ...newDeviceAction, actionId: e.target.value })}
-                  required
-                >
-                  <option value="">请选择动作</option>
-                  {actions.map(action => (
-                    <option key={action._id} value={action._id}>
-                      {action.name} - {action.description}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label htmlFor="prompt">触发提示词</label>
-                <input
-                  type="text"
-                  id="prompt"
-                  value={newDeviceAction.prompt}
-                  onChange={(e) => setNewDeviceAction({ ...newDeviceAction, prompt: e.target.value })}
-                  required
-                  placeholder="例如：前进、左转、趴下等"
-                />
-              </div>
-              <div className="modal-footer">
-                <button 
-                  type="button"
-                  className="cancel-button"
-                  onClick={() => setIsAddModalOpen(false)}
-                >
-                  取消
-                </button>
-                <button type="submit" className="submit-button">
-                  添加
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+                添加动作映射
+              </Button>
+              <Button 
+                onClick={() => setIsAddModalOpen(false)}
+                size="large"
+                block
+                style={{ height: '48px', fontSize: '16px', fontWeight: '600' }}
+              >
+                取消
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

@@ -1,11 +1,11 @@
 import axios from 'axios';
-import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 
-import { LoginRequest, RegisterRequest, ChatRequest } from '../types';
+import type { LoginRequest, RegisterRequest, ChatRequest, PhoneLoginRequest, SendCodeRequest } from '../types';
 
 // 创建Axios实例
 const api: AxiosInstance = axios.create({
-  baseURL: 'http://localhost:3000/api',
+  baseURL: 'http://localhost:3002/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -13,7 +13,7 @@ const api: AxiosInstance = axios.create({
 
 // 请求拦截器，用于添加认证令牌
 api.interceptors.request.use(
-  (config: AxiosRequestConfig) => {
+  (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('token');
     if (token && config.headers) {
       config.headers['Authorization'] = `Bearer ${token}`;
@@ -77,6 +77,23 @@ export const authApi = {
     localStorage.removeItem('user');
     window.location.href = '/login';
   },
+  
+  // 发送验证码
+  sendCode: async (data: SendCodeRequest) => {
+    const response = await api.post('/auth/send-code', data);
+    return response.data;
+  },
+  
+  // 手机号验证码登录
+  phoneLogin: async (data: PhoneLoginRequest) => {
+    const response = await api.post('/auth/phone-login', data);
+    // 保存令牌和用户信息到本地存储
+    if (response.data.token) {
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+    }
+    return response.data;
+  },
 };
 
 // 设备相关API
@@ -84,24 +101,55 @@ export const deviceApi = {
   // 获取设备列表
   getDevices: async () => {
     const response = await api.get('/devices');
-    return response.data;
+    // 转换后端返回的蛇形命名法为前端使用的驼峰命名法
+    const devices = response.data.devices.map((device: any) => ({
+      id: device.id,
+      deviceName: device.device_name,
+      deviceType: device.device_type,
+      status: device.status,
+      createdAt: device.created_at,
+      updatedAt: device.updated_at
+    }));
+    return { devices };
   },
   
   // 添加设备
   addDevice: async (data: { deviceName: string; deviceType: string }) => {
-    const response = await api.post('/devices', data);
+    // 转换前端的驼峰命名法为后端使用的蛇形命名法
+    const requestData = {
+      device_name: data.deviceName,
+      device_type: data.deviceType
+    };
+    const response = await api.post('/devices', requestData);
     return response.data;
   },
   
   // 获取单个设备
   getDevice: async (id: string) => {
     const response = await api.get(`/devices/${id}`);
-    return response.data;
+    // 转换后端返回的蛇形命名法为前端使用的驼峰命名法
+    const device = response.data.device;
+    return {
+      device: {
+        id: device.id,
+        deviceName: device.device_name,
+        deviceType: device.device_type,
+        status: device.status,
+        createdAt: device.created_at,
+        updatedAt: device.updated_at
+      }
+    };
   },
   
   // 更新设备
   updateDevice: async (id: string, data: { deviceName?: string; deviceType?: string; status?: 'online' | 'offline' }) => {
-    const response = await api.put(`/devices/${id}`, data);
+    // 转换前端的驼峰命名法为后端使用的蛇形命名法
+    const requestData = {
+      device_name: data.deviceName,
+      device_type: data.deviceType,
+      status: data.status
+    };
+    const response = await api.put(`/devices/${id}`, requestData);
     return response.data;
   },
   

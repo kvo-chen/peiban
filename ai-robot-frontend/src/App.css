@@ -1,450 +1,422 @@
-/* 全局样式重置 */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+/* 引入Ant Design的全局样式 */
+@import 'antd/dist/reset.css';
+
+/* 自定义全局样式 */
+code {
+  font-family: var(--font-mono);
 }
 
-body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  background-color: #f5f7fa;
-  color: #333;
-  line-height: 1.6;
-}
-
-/* App容器样式 */
 .App {
-  display: flex;
-  flex-direction: column;
   min-height: 100vh;
+  background-color: var(--color-bg-light);
+  transition: background-color var(--transition-normal);
 }
 
-/* 导航栏样式 */
-.navbar {
-  background-color: #4a90e2;
-  color: white;
-  padding: 0 20px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.navbar-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  height: 60px;
-}
-
-.navbar-logo a {
-  color: white;
-  text-decoration: none;
-  font-size: 1.5rem;
-  font-weight: bold;
-}
-
-.navbar-menu {
-  display: flex;
-  gap: 20px;
-}
-
-.navbar-link {
-  color: white;
-  text-decoration: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  transition: background-color 0.3s;
-}
-
-.navbar-link:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-}
-
-.navbar-button {
-  background-color: transparent;
-  color: white;
-  border: 1px solid white;
-  padding: 8px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-.navbar-button:hover {
-  background-color: white;
-  color: #4a90e2;
-}
-
-/* 主内容区样式 */
 .main-content {
-  flex: 1;
-  max-width: 1200px;
+  padding: 24px;
+  min-height: calc(100vh - 64px);
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 20px;
   width: 100%;
+  animation: fadeIn var(--transition-normal) ease-out;
 }
 
-/* 登录/注册页面样式 */
-.login-container,
-.register-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: calc(100vh - 60px);
-  padding: 20px;
+/* 响应式内容区域 */
+@media (max-width: 768px) {
+  .main-content {
+    padding: 16px;
+  }
 }
 
-.login-form,
-.register-form {
-  background-color: white;
-  padding: 30px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  max-width: 400px;
+@media (max-width: 480px) {
+  .main-content {
+    padding: 12px;
+  }
 }
 
-.login-form h2,
-.register-form h2 {
-  margin-bottom: 20px;
-  color: #4a90e2;
-  text-align: center;
+/* 页面过渡动画 */
+.page-transition-enter {
+  opacity: 0;
+  transform: translateY(20px);
 }
 
-.form-group {
-  margin-bottom: 15px;
+.page-transition-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
 }
 
-.form-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
+.page-transition-exit {
+  opacity: 1;
+  transform: translateY(0);
 }
 
-.form-group input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
+.page-transition-exit-active {
+  opacity: 0;
+  transform: translateY(-20px);
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
 }
 
-.form-group input:focus {
-  outline: none;
-  border-color: #4a90e2;
-  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.1);
+/* 组件悬停效果 */
+.hover-lift {
+  transition: all var(--transition-fast);
 }
 
-.login-button,
-.register-button,
-.add-device-button {
-  width: 100%;
-  padding: 10px;
-  background-color: #4a90e2;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: background-color 0.3s;
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
-.login-button:hover,
-.register-button:hover,
-.add-device-button:hover {
-  background-color: #357abd;
+.hover-pulse {
+  transition: all var(--transition-fast);
 }
 
-.login-button:disabled,
-.register-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
+.hover-pulse:hover {
+  transform: scale(1.02);
 }
 
-.error-message {
-  background-color: #fee;
-  color: #d32f2f;
-  padding: 10px;
-  border-radius: 4px;
-  margin-bottom: 15px;
-  font-size: 14px;
-}
-
-.register-link,
-.login-link {
-  text-align: center;
-  margin-top: 15px;
-  font-size: 14px;
-}
-
-.register-link a,
-.login-link a {
-  color: #4a90e2;
-  text-decoration: none;
-}
-
-.register-link a:hover,
-.login-link a:hover {
-  text-decoration: underline;
-}
-
-/* 设备管理页面样式 */
-.device-management {
-  background-color: white;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.device-management-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
-}
-
-.device-management-header h2 {
-  color: #4a90e2;
-}
-
-.add-device-button {
-  width: auto;
-  padding: 8px 16px;
-}
-
-.device-list {
-  margin-top: 20px;
-}
-
-.no-devices {
-  text-align: center;
-  padding: 40px 20px;
-  color: #666;
-}
-
-.device-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-top: 20px;
-}
-
-.device-table th,
-.device-table td {
-  padding: 12px;
-  text-align: left;
-  border-bottom: 1px solid #eee;
-}
-
-.device-table th {
-  background-color: #f5f7fa;
-  font-weight: 600;
-  color: #666;
-}
-
-.device-table tr:hover {
-  background-color: #f9fafb;
-}
-
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.status-badge.online {
-  background-color: #e8f5e8;
-  color: #2e7d32;
-}
-
-.status-badge.offline {
-  background-color: #ffebee;
-  color: #c62828;
-}
-
-.device-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.action-button {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-  text-decoration: none;
-  display: inline-block;
-  transition: all 0.3s;
-}
-
-.action-button.view {
-  background-color: #4a90e2;
-  color: white;
-}
-
-.action-button.view:hover {
-  background-color: #357abd;
-}
-
-.action-button.delete {
-  background-color: #d32f2f;
-  color: white;
-}
-
-.action-button.delete:hover {
-  background-color: #b71c1c;
-}
-
-/* 模态框样式 */
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.modal {
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  width: 100%;
-  max-width: 400px;
+/* 按钮动画效果 */
+.ant-btn {
+  position: relative;
   overflow: hidden;
 }
 
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 15px 20px;
-  background-color: #f5f7fa;
-  border-bottom: 1px solid #eee;
+.ant-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left var(--transition-fast);
 }
 
-.modal-header h3 {
-  margin: 0;
-  color: #4a90e2;
+.ant-btn:hover::before {
+  left: 100%;
 }
 
-.close-button {
-  background-color: transparent;
-  border: none;
-  font-size: 24px;
-  cursor: pointer;
-  color: #666;
-  padding: 0;
-  width: 30px;
-  height: 30px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  border-radius: 4px;
-  transition: background-color 0.3s;
+/* 卡片入场动画 */
+.card-enter {
+  opacity: 0;
+  transform: scale(0.95);
 }
 
-.close-button:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+.card-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
 }
 
-.modal form {
-  padding: 20px;
+/* 表格行动画 */
+.ant-table-tbody > tr {
+  transition: all var(--transition-fast);
 }
 
-.modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 15px 20px;
-  border-top: 1px solid #eee;
-  background-color: #f9fafb;
+/* 表单输入框焦点效果 */
+.ant-input:focus,
+.ant-input-number:focus,
+.ant-select-selector:focus,
+.ant-picker:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+  transform: translateY(-1px);
 }
 
-.cancel-button {
-  padding: 8px 16px;
-  background-color: #f5f7fa;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: all 0.3s;
+/* 模态框动画 */
+.ant-modal-enter {
+  opacity: 0;
+  transform: scale(0.9);
 }
 
-.cancel-button:hover {
-  background-color: #e9ecef;
+.ant-modal-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity var(--transition-normal), transform var(--transition-normal);
 }
 
-.submit-button {
-  padding: 8px 16px;
-  background-color: #4a90e2;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.3s;
+.ant-modal-mask-enter {
+  opacity: 0;
 }
 
-.submit-button:hover {
-  background-color: #357abd;
+.ant-modal-mask-enter-active {
+  opacity: 1;
+  transition: opacity var(--transition-normal);
 }
 
-/* 加载状态样式 */
+/* 抽屉动画 */
+.ant-drawer-enter {
+  transform: translateX(100%);
+}
+
+.ant-drawer-enter-active {
+  transform: translateX(0);
+  transition: transform var(--transition-normal);
+}
+
+.ant-drawer-mask-enter {
+  opacity: 0;
+}
+
+.ant-drawer-mask-enter-active {
+  opacity: 1;
+  transition: opacity var(--transition-normal);
+}
+
+/* 消息动画 */
+.ant-message-notice {
+  animation: slideIn var(--transition-fast) ease-out;
+}
+
+/* 聊天消息动画 */
+.chat-message-enter {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.chat-message-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+/* 加载状态动画 */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  border-top-color: var(--color-primary);
+  animation: spin var(--transition-normal) linear infinite;
+}
+
+/* 导航菜单动画 */
+.ant-menu-item {
+  transition: all var(--transition-fast);
+}
+
+.ant-menu-item:hover {
+  transform: translateX(4px);
+}
+
+/* 标签页动画 */
+.ant-tabs-tab {
+  transition: all var(--transition-fast);
+}
+
+.ant-tabs-tab:hover {
+  transform: translateY(-1px);
+}
+
+/* 按钮组动画 */
+.ant-space .ant-btn {
+  transition: all var(--transition-fast);
+}
+
+.ant-space .ant-btn:hover {
+  z-index: 1;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* 状态标签动画 */
+.ant-tag {
+  transition: all var(--transition-fast);
+}
+
+.ant-tag:hover {
+  transform: scale(1.05);
+  box-shadow: var(--shadow-sm);
+}
+
+/* 加载中样式 */
 .loading {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 200px;
-  font-size: 18px;
-  color: #666;
+  height: 200px;
+  font-size: 16px;
+  color: var(--color-text-secondary);
+  flex-direction: column;
+  gap: 16px;
 }
 
-/* 响应式设计 */
-@media (max-width: 768px) {
-  .navbar-container {
-    padding: 0 10px;
-  }
-  
-  .navbar-logo a {
-    font-size: 1.2rem;
-  }
-  
-  .navbar-menu {
-    gap: 10px;
-  }
-  
-  .main-content {
-    padding: 10px;
-  }
-  
-  .device-management-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 10px;
-  }
-  
-  .device-table {
-    font-size: 14px;
-  }
-  
-  .device-table th,
-  .device-table td {
-    padding: 8px;
-  }
-  
-  .device-actions {
-    flex-direction: column;
-    gap: 5px;
-  }
-  
-  .action-button {
-    font-size: 12px;
-    padding: 4px 8px;
-  }
+.loading .ant-spin {
+  color: var(--color-primary);
+}
+
+/* 卡片样式优化 */
+.ant-card {
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-normal);
+  border: 1px solid var(--color-border);
+}
+
+.ant-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.ant-card-head {
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background-color: var(--color-bg);
+}
+
+.ant-card-body {
+  background-color: var(--color-bg);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+/* 按钮样式优化 */
+.ant-btn {
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.ant-btn-primary {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.ant-btn-primary:hover {
+  background-color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  box-shadow: var(--shadow-md);
+}
+
+/* 输入框样式优化 */
+.ant-input,
+.ant-input-number,
+.ant-select-selector,
+.ant-picker {
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  transition: all var(--transition-fast);
+}
+
+.ant-input:focus,
+.ant-input-number:focus,
+.ant-select-selector:focus,
+.ant-picker:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.1);
+}
+
+/* 表格样式优化 */
+.ant-table {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.ant-table-thead > tr > th {
+  background-color: var(--color-bg-light);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 600;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background-color: var(--color-primary-light);
+}
+
+/* 分页样式优化 */
+.ant-pagination {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+}
+
+.ant-pagination-item {
+  border-radius: var(--radius-sm);
+}
+
+.ant-pagination-item-active {
+  border-color: var(--color-primary);
+}
+
+.ant-pagination-item-active a {
+  color: var(--color-primary);
+}
+
+/* 标签样式优化 */
+.ant-tag {
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  padding: 2px 8px;
+}
+
+/* 步骤条样式优化 */
+.ant-steps-item-title::after {
+  background-color: var(--color-border);
+}
+
+.ant-steps-item-process .ant-steps-item-icon {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+/* 消息提示样式优化 */
+.ant-message-notice-content {
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+/* 模态框样式优化 */
+.ant-modal {
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.ant-modal-content {
+  border-radius: var(--radius-lg);
+}
+
+.ant-modal-header {
+  border-bottom: 1px solid var(--color-border);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background-color: var(--color-bg);
+}
+
+.ant-modal-body {
+  background-color: var(--color-bg);
+}
+
+.ant-modal-footer {
+  border-top: 1px solid var(--color-border);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background-color: var(--color-bg);
+}
+
+/* 菜单样式优化 */
+.ant-menu {
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.ant-menu-item-selected {
+  background-color: var(--color-primary-light) !important;
+  color: var(--color-primary) !important;
+}
+
+.ant-menu-item:hover {
+  background-color: var(--color-primary-light) !important;
+}
+
+/* 标签页样式优化 */
+.ant-tabs {
+  background-color: var(--color-bg);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--color-primary) !important;
+}
+
+.ant-tabs-ink-bar {
+  background-color: var(--color-primary);
 }

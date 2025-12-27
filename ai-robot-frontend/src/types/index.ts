@@ -1,14 +1,14 @@
 // 用户类型
 export interface User {
-  id: string;
+  id: number;
   username: string;
   email: string;
 }
 
 // 设备类型
 export interface Device {
-  _id: string;
-  userId: string;
+  id: number;
+  userId: number;
   deviceName: string;
   deviceType: string;
   status: 'online' | 'offline';
@@ -17,7 +17,7 @@ export interface Device {
 
 // 动作类型
 export interface Action {
-  _id: string;
+  id: number;
   name: string;
   description: string;
   type: 'basic' | 'custom';
@@ -28,8 +28,8 @@ export interface Action {
 
 // 设备动作映射类型
 export interface DeviceAction {
-  _id: string;
-  deviceId: string;
+  id: number;
+  deviceId: number;
   actionId: Action;
   prompt: string;
   createdAt: Date;
@@ -37,9 +37,9 @@ export interface DeviceAction {
 
 // 对话记录类型
 export interface Conversation {
-  _id: string;
-  userId: string;
-  deviceId: string;
+  id: number;
+  userId: number;
+  deviceId: number;
   message: string;
   response: string;
   actionTriggered: string | null;
@@ -52,11 +52,23 @@ export interface LoginRequest {
   password: string;
 }
 
+// 手机号登录请求类型
+export interface PhoneLoginRequest {
+  phone: string;
+  code: string;
+}
+
+// 发送验证码请求类型
+export interface SendCodeRequest {
+  phone: string;
+}
+
 // 注册请求类型
 export interface RegisterRequest {
   username: string;
   email: string;
   password: string;
+  phone?: string;
 }
 
 // AI对话请求类型
