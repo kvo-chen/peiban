@@ -13,10 +13,24 @@
   ],
   "routes": [
     {
-      "src": "/(.*)",
-      "dest": "/ai-robot-frontend/dist/$1",
+      "src": "^/assets/(.*)",
+      "dest": "/ai-robot-frontend/dist/assets/$1",
       "headers": {
         "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "src": "^/vite.svg",
+      "dest": "/ai-robot-frontend/dist/vite.svg",
+      "headers": {
+        "Cache-Control": "public, max-age=31536000, immutable"
+      }
+    },
+    {
+      "src": "^/(.*)",
+      "dest": "/ai-robot-frontend/dist/index.html",
+      "headers": {
+        "Cache-Control": "public, max-age=0, must-revalidate"
       }
     }
   ]
