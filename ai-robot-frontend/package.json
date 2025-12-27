@@ -40,6 +40,7 @@
     "globals": "^14.0.0",
     "identity-obj-proxy": "^3.0.0",
     "jest": "^30.2.0",
+    "terser": "^5.44.1",
     "ts-jest": "^29.4.6",
     "typescript": "~5.5.4",
     "vite": "^5.3.3"
