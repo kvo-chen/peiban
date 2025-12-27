@@ -98,6 +98,15 @@ Action.init(
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
+    // 添加索引，提高查询性能
+    indexes: [
+      // 按名称查询索引，用于精确查询
+      { name: 'idx_action_name', fields: ['name'], unique: true },
+      // 按类型查询索引，用于按动作类型过滤
+      { name: 'idx_action_type', fields: ['type'] },
+      // 按创建时间查询索引，用于按时间排序
+      { name: 'idx_action_created_at', fields: ['created_at'] },
+    ],
   }
 );
 

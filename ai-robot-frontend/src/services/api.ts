@@ -47,9 +47,9 @@ export const authApi = {
   login: async (data: LoginRequest) => {
     const response = await api.post('/auth/login', data);
     // 保存令牌和用户信息到本地存储
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+    if (response.data.data && response.data.data.token) {
+      localStorage.setItem('token', response.data.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.data.user));
     }
     return response.data;
   },
@@ -58,9 +58,9 @@ export const authApi = {
   register: async (data: RegisterRequest) => {
     const response = await api.post('/auth/register', data);
     // 保存令牌和用户信息到本地存储
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+    if (response.data.data && response.data.data.token) {
+      localStorage.setItem('token', response.data.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.data.user));
     }
     return response.data;
   },
@@ -88,9 +88,9 @@ export const authApi = {
   phoneLogin: async (data: PhoneLoginRequest) => {
     const response = await api.post('/auth/phone-login', data);
     // 保存令牌和用户信息到本地存储
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+    if (response.data.data && response.data.data.token) {
+      localStorage.setItem('token', response.data.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.data.user));
     }
     return response.data;
   },
@@ -99,8 +99,8 @@ export const authApi = {
 // 设备相关API
 export const deviceApi = {
   // 获取设备列表
-  getDevices: async () => {
-    const response = await api.get('/devices');
+  getDevices: async (params?: { search?: string; status?: string; deviceType?: string; page?: number; limit?: number }) => {
+    const response = await api.get('/devices', { params });
     // 转换后端返回的蛇形命名法为前端使用的驼峰命名法
     const devices = response.data.devices.map((device: any) => ({
       id: device.id,
@@ -110,7 +110,12 @@ export const deviceApi = {
       createdAt: device.created_at,
       updatedAt: device.updated_at
     }));
-    return { devices };
+    return {
+      devices,
+      total: response.data.total,
+      page: response.data.page,
+      limit: response.data.limit
+    };
   },
   
   // 添加设备
@@ -156,6 +161,18 @@ export const deviceApi = {
   // 删除设备
   deleteDevice: async (id: string) => {
     const response = await api.delete(`/devices/${id}`);
+    return response.data;
+  },
+  
+  // 批量删除设备
+  batchDeleteDevices: async (deviceIds: number[]) => {
+    const response = await api.post('/devices/batch-delete', { deviceIds });
+    return response.data;
+  },
+  
+  // 批量更新设备状态
+  batchUpdateDevicesStatus: async (deviceIds: number[], status: 'online' | 'offline') => {
+    const response = await api.post('/devices/batch-update-status', { deviceIds, status });
     return response.data;
   },
 };
@@ -231,6 +248,15 @@ export const chatApi = {
   // 获取对话历史
   getChatHistory: async (deviceId: string, limit?: number) => {
     const response = await api.get(`/chat/${deviceId}`, { params: { limit } });
+    return response.data;
+  },
+};
+
+// 日志相关API
+export const logApi = {
+  // 获取操作日志
+  getOperationLogs: async (page: number = 1, limit: number = 10) => {
+    const response = await api.get('/admin/logs', { params: { page, limit } });
     return response.data;
   },
 };

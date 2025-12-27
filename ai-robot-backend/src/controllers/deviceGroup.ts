@@ -10,9 +10,9 @@ export const getDeviceGroups = async (req: AuthenticatedRequest, res: Response) 
     const deviceGroups = await DeviceGroup.findAll({
       where: { user_id: req.user.id }
     });
-    res.success({ deviceGroups });
+    (res as any).success({ deviceGroups });
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 
@@ -28,9 +28,9 @@ export const createDeviceGroup = async (req: AuthenticatedRequest, res: Response
       description
     });
     
-    res.created({ deviceGroup }, '设备分组创建成功');
+    (res as any).created({ deviceGroup }, '设备分组创建成功');
   } catch (error) {
-    res.error(500, error instanceof Error ? error.message : '服务器错误');
+    (res as any).error(500, error instanceof Error ? error.message : '服务器错误');
   }
 };
 
@@ -45,7 +45,7 @@ export const updateDeviceGroup = async (req: AuthenticatedRequest, res: Response
       where: { id, user_id: req.user.id }
     });
     if (!deviceGroup) {
-      return res.error(404, '设备分组不存在');
+      return (res as any).error(404, '设备分组不存在');
     }
     
     // 更新设备分组信息
@@ -57,9 +57,9 @@ export const updateDeviceGroup = async (req: AuthenticatedRequest, res: Response
     // 获取更新后的设备分组信息
     const updatedDeviceGroup = await DeviceGroup.findByPk(id);
     
-    res.success({ deviceGroup: updatedDeviceGroup }, '设备分组更新成功');
+    (res as any).success({ deviceGroup: updatedDeviceGroup }, '设备分组更新成功');
   } catch (error) {
-    res.error(500, error instanceof Error ? error.message : '服务器错误');
+    (res as any).error(500, error instanceof Error ? error.message : '服务器错误');
   }
 };
 
@@ -73,7 +73,7 @@ export const deleteDeviceGroup = async (req: AuthenticatedRequest, res: Response
       where: { id, user_id: req.user.id }
     });
     if (!deviceGroup) {
-      return res.error(404, '设备分组不存在');
+      return (res as any).error(404, '设备分组不存在');
     }
     
     // 删除设备分组（会自动删除关联的设备分组关系）
@@ -81,9 +81,9 @@ export const deleteDeviceGroup = async (req: AuthenticatedRequest, res: Response
       where: { id }
     });
     
-    res.success(null, '设备分组删除成功');
+    (res as any).success(null, '设备分组删除成功');
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 
@@ -98,12 +98,12 @@ export const getDeviceGroup = async (req: AuthenticatedRequest, res: Response) =
       include: [{ model: Device, as: 'devices' }]
     });
     if (!deviceGroup) {
-      return res.error(404, '设备分组不存在');
+      return (res as any).error(404, '设备分组不存在');
     }
     
-    res.success({ deviceGroup });
+    (res as any).success({ deviceGroup });
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 
@@ -117,7 +117,7 @@ export const addDeviceToGroup = async (req: AuthenticatedRequest, res: Response)
       where: { id: groupId, user_id: req.user.id }
     });
     if (!deviceGroup) {
-      return res.error(404, '设备分组不存在');
+      return (res as any).error(404, '设备分组不存在');
     }
     
     // 检查设备是否存在且属于当前用户
@@ -125,7 +125,7 @@ export const addDeviceToGroup = async (req: AuthenticatedRequest, res: Response)
       where: { id: deviceId, user_id: req.user.id }
     });
     if (!device) {
-      return res.error(404, '设备不存在');
+      return (res as any).error(404, '设备不存在');
     }
     
     // 检查设备是否已在分组中
@@ -133,7 +133,7 @@ export const addDeviceToGroup = async (req: AuthenticatedRequest, res: Response)
       where: { device_id: deviceId, group_id: groupId }
     });
     if (existingRelation) {
-      return res.error(400, '设备已在分组中');
+      return (res as any).error(400, '设备已在分组中');
     }
     
     // 添加设备到分组
@@ -142,9 +142,9 @@ export const addDeviceToGroup = async (req: AuthenticatedRequest, res: Response)
       group_id: groupId
     });
     
-    res.success(null, '设备添加到分组成功');
+    (res as any).success(null, '设备添加到分组成功');
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 
@@ -158,7 +158,7 @@ export const removeDeviceFromGroup = async (req: AuthenticatedRequest, res: Resp
       where: { id: groupId, user_id: req.user.id }
     });
     if (!deviceGroup) {
-      return res.error(404, '设备分组不存在');
+      return (res as any).error(404, '设备分组不存在');
     }
     
     // 检查设备分组关系是否存在
@@ -166,14 +166,14 @@ export const removeDeviceFromGroup = async (req: AuthenticatedRequest, res: Resp
       where: { device_id: deviceId, group_id: groupId }
     });
     if (!relation) {
-      return res.error(404, '设备不在分组中');
+      return (res as any).error(404, '设备不在分组中');
     }
     
     // 从设备分组移除设备
     await relation.destroy();
     
-    res.success(null, '设备从分组移除成功');
+    (res as any).success(null, '设备从分组移除成功');
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };

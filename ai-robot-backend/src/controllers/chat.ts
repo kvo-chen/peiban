@@ -1,9 +1,10 @@
 import { AuthenticatedRequest } from '../middleware/auth';
-import { CustomResponse } from '../types/CustomResponse';
+import { Response } from 'express';
 import Conversation from '../models/Conversation';
 import DeviceAction from '../models/DeviceAction';
 import Action from '../models/Action';
 import { OpenAI } from 'openai';
+import websocketService from '../services/websocketService';
 
 // 初始化OpenAI客户端
 const openai = new OpenAI({
@@ -11,13 +12,13 @@ const openai = new OpenAI({
 });
 
 // AI对话处理（集成OpenAI API）
-export const chatWithAI = async (req: AuthenticatedRequest, res: CustomResponse) => {
+export const createChat = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { deviceId, message } = req.body;
     
     // 检查是否提供了设备ID
     if (!deviceId) {
-      return res.error(400, '设备ID不能为空');
+      return (res as any).error(400, '设备ID不能为空');
     }
     
     // 获取设备的动作映射列表，包含关联的Action信息
@@ -76,31 +77,37 @@ export const chatWithAI = async (req: AuthenticatedRequest, res: CustomResponse)
       action_triggered: actionTriggered
     });
     
+    const conversationData = {
+      id: conversation.id,
+      message: conversation.message,
+      response: conversation.response,
+      actionTriggered,
+      createdAt: conversation.created_at,
+      deviceId: deviceId
+    };
+    
+    // 通过WebSocket推送消息给用户的所有在线设备
+    websocketService.sendChatMessage(req.user.id, conversationData);
+    
     // 返回响应
-    res.success({
-      conversation: {
-        id: conversation.id,
-        message: conversation.message,
-        response: conversation.response,
-        actionTriggered,
-        createdAt: conversation.created_at
-      }
+    (res as any).success({
+      conversation: conversationData
     }, '对话响应生成成功');
   } catch (error) {
     console.error('Error in chatWithAI:', error);
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 
 // 获取对话历史
-export const getChatHistory = async (req: AuthenticatedRequest, res: CustomResponse) => {
+export const getChatHistory = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { deviceId } = req.params;
     const { limit = 50 } = req.query;
     
     // 检查是否提供了设备ID
     if (!deviceId) {
-      return res.error(400, '设备ID不能为空');
+      return (res as any).error(400, '设备ID不能为空');
     }
     
     // 获取对话历史
@@ -115,9 +122,9 @@ export const getChatHistory = async (req: AuthenticatedRequest, res: CustomRespo
     
     // 转换为普通对象，避免序列化问题
     const conversationsJSON = conversations.map(conv => conv.toJSON());
-    res.success({ conversations: conversationsJSON });
+    (res as any).success({ conversations: conversationsJSON });
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 

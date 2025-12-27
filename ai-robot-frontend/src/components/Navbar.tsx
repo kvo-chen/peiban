@@ -7,7 +7,8 @@ import {
   RobotOutlined, 
   BarChartOutlined, 
   SettingOutlined,
-  MenuOutlined 
+  MenuOutlined,
+  ClockCircleOutlined 
 } from '@ant-design/icons';
 import { authApi } from '../services/api';
 
@@ -29,6 +30,7 @@ const Navbar: React.FC = () => {
     const path = location.pathname;
     if (path === '/') return 'devices';
     if (path === '/analysis') return 'analysis';
+    if (path === '/logs') return 'logs';
     if (path === '/settings') return 'settings';
     if (path === '/login') return 'login';
     if (path === '/register') return 'register';
@@ -39,6 +41,7 @@ const Navbar: React.FC = () => {
   const navMenu = [
     { key: 'devices', label: '设备管理', icon: <UserOutlined />, path: '/' },
     { key: 'analysis', label: '数据分析', icon: <BarChartOutlined />, path: '/analysis' },
+    { key: 'logs', label: '操作日志', icon: <ClockCircleOutlined />, path: '/logs' },
     { key: 'settings', label: '个性化设置', icon: <SettingOutlined />, path: '/settings' },
   ];
   
@@ -84,12 +87,47 @@ const Navbar: React.FC = () => {
       </div>
       
       {/* 桌面端菜单 */}
-      <div style={{ display: 'none', flex: 1, justifyContent: 'flex-end', maxWidth: '800px' }} className="desktop-menu">
+      <div style={{ display: 'flex', flex: 1, justifyContent: 'flex-end', maxWidth: '800px' }} className="desktop-menu">
         {token ? (
           <Menu 
             theme="dark" 
             mode="horizontal" 
             selectedKeys={[getCurrentKey()]} 
+            items={[
+              ...navMenu.map(item => ({
+                key: item.key,
+                icon: item.icon,
+                label: (
+                  <Link to={item.path} style={{ 
+                    color: 'white', 
+                    textDecoration: 'none',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    transition: 'all var(--transition-fast)',
+                  }}>
+                    {item.label}
+                  </Link>
+                )
+              })),
+              {
+                key: 'logout',
+                label: (
+                  <Button 
+                    type="text" 
+                    icon={<LogoutOutlined />} 
+                    onClick={handleLogout} 
+                    style={{ 
+                      color: 'white',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                    }}
+                    size="middle"
+                  >
+                    退出登录
+                  </Button>
+                )
+              }
+            ]}
             style={{ 
               flex: 1, 
               backgroundColor: 'transparent', 
@@ -98,67 +136,30 @@ const Navbar: React.FC = () => {
               justifyContent: 'flex-end',
               gap: '16px',
             }}
-          >
-            {navMenu.map(item => (
-              <Menu.Item 
-                key={item.key} 
-                icon={item.icon} 
-                style={{ 
-                  borderRadius: 'var(--radius-sm)',
-                  margin: '0 4px',
-                  transition: 'all var(--transition-fast) cubic-bezier(0.4, 0, 0.2, 1)',
-                  transform: 'translateY(0)',
-                }}
-                onMouseEnter={(e) => {
-                  const target = e.domEvent.currentTarget as HTMLElement;
-                  target.style.transform = 'translateY(-2px)';
-                  target.style.boxShadow = '0 4px 12px rgba(255, 255, 255, 0.1)';
-                }}
-                onMouseLeave={(e) => {
-                  const target = e.domEvent.currentTarget as HTMLElement;
-                  target.style.transform = 'translateY(0)';
-                  target.style.boxShadow = 'none';
-                }}
-              >
-                <Link to={item.path} style={{ 
-                  color: 'white', 
-                  textDecoration: 'none',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  transition: 'all var(--transition-fast)',
-                }}>
-                  {item.label}
-                </Link>
-              </Menu.Item>
-            ))}
-            <Menu.Item 
-              key="logout" 
-              style={{ 
-                marginLeft: '24px',
-                borderRadius: 'var(--radius-sm)',
-                margin: '0 4px',
-              }}
-            >
-              <Button 
-                type="text" 
-                icon={<LogoutOutlined />} 
-                onClick={handleLogout} 
-                style={{ 
-                  color: 'white',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                }}
-                size="middle"
-              >
-                退出登录
-              </Button>
-            </Menu.Item>
-          </Menu>
+          />
         ) : (
           <Menu 
             theme="dark" 
             mode="horizontal" 
             selectedKeys={[getCurrentKey()]} 
+            items={authMenu.map(item => ({
+              key: item.key,
+              label: (
+                <Link to={item.path} style={{ 
+                  color: 'white', 
+                  textDecoration: 'none',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                }}>
+                  {item.label}
+                </Link>
+              ),
+              style: {
+                borderRadius: 'var(--radius-sm)',
+                margin: '0 4px',
+                transition: 'all var(--transition-fast)',
+              }
+            }))}
             style={{ 
               flex: 1, 
               marginLeft: 'auto', 
@@ -168,27 +169,7 @@ const Navbar: React.FC = () => {
               justifyContent: 'flex-end',
               gap: '16px',
             }}
-          >
-            {authMenu.map(item => (
-              <Menu.Item 
-                key={item.key}
-                style={{ 
-                  borderRadius: 'var(--radius-sm)',
-                  margin: '0 4px',
-                  transition: 'all var(--transition-fast)',
-                }}
-              >
-                <Link to={item.path} style={{ 
-                  color: 'white', 
-                  textDecoration: 'none',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                }}>
-                  {item.label}
-                </Link>
-              </Menu.Item>
-            ))}
-          </Menu>
+          />
         )}
       </div>
       
@@ -216,7 +197,7 @@ const Navbar: React.FC = () => {
         placement="right"
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
-        width={280}
+        size={280}
       >
         {token ? (
           <Space direction="vertical" style={{ width: '100%', marginTop: '16px' }}>

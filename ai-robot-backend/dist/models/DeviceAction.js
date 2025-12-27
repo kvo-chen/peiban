@@ -60,7 +60,18 @@ DeviceAction.init({
         {
             unique: true,
             fields: ['device_id', 'action_id'],
+            name: 'idx_device_action_unique'
         },
+        // 添加设备ID索引，提高按设备查询动作的性能
+        {
+            name: 'idx_device_action_device_id',
+            fields: ['device_id']
+        },
+        // 添加动作ID索引，提高按动作查询设备的性能
+        {
+            name: 'idx_device_action_action_id',
+            fields: ['action_id']
+        }
     ],
 });
 // 定义关联关系

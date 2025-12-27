@@ -8,7 +8,7 @@ dotenv.config();
 const sequelize = new Sequelize({
   dialect: 'sqlite',
   storage: path.join(__dirname, '..', 'database.sqlite'),
-  logging: console.log,
+  logging: false,
   define: {
     timestamps: true,
     underscored: true,

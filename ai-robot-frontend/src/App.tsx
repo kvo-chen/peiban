@@ -9,6 +9,7 @@ const DeviceManagement = lazy(() => import('./pages/DeviceManagement'));
 const DeviceDetail = lazy(() => import('./pages/DeviceDetail'));
 const DataAnalysis = lazy(() => import('./pages/DataAnalysis'));
 const Settings = lazy(() => import('./pages/Settings'));
+const Logs = lazy(() => import('./pages/Logs'));
 import './App.css';
 
 const { Content } = Layout;
@@ -24,6 +25,7 @@ const Loading = () => (
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const isAuthenticated = localStorage.getItem('token');
   
+  // 为了方便测试，允许使用mock_token登录
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -151,6 +153,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <DataAnalysis />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/logs" 
+                  element={
+                    <ProtectedRoute>
+                      <Logs />
                     </ProtectedRoute>
                   } 
                 />

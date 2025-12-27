@@ -1,12 +1,12 @@
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { Sequelize, Op } from 'sequelize';
 import User from '../models/User';
 import jwt from 'jsonwebtoken';
 import { sendVerificationCode, verifyCode } from '../services/verificationCode';
-import { CustomResponse } from '../types/CustomResponse';
+import { AuthenticatedRequest } from '../middleware/auth';
 
 // 注册用户
-export const register = async (req: Request, res: CustomResponse) => {
+export const register = async (req: Request, res: Response) => {
   try {
     console.log('Received registration request:', req.body);
     const { username, email, password } = req.body;
@@ -23,7 +23,7 @@ export const register = async (req: Request, res: CustomResponse) => {
     });
     if (userExists) {
       console.log('User already exists:', username, email);
-      return res.error(400, '用户已存在');
+      return (res as any).error(400, '用户已存在');
     }
     
     // 创建新用户
@@ -37,7 +37,7 @@ export const register = async (req: Request, res: CustomResponse) => {
       process.env.JWT_SECRET || 'default_secret_key'
     );
     
-    res.created({
+    (res as any).created({
       token,
       user: {
         id: user.id,
@@ -55,30 +55,40 @@ export const register = async (req: Request, res: CustomResponse) => {
         field: err.path,
         message: err.message
       }));
-      res.error(400, '验证错误', { errors: validationErrors });
+      (res as any).error(400, '验证错误', { errors: validationErrors });
     } else {
-      res.error(500, '服务器错误', { error: error.message });
+      (res as any).error(500, '服务器错误', { error: error.message });
     }
   }
 };
 
 // 登录用户
-export const login = async (req: Request, res: CustomResponse) => {
+export const login = async (req: Request, res: Response) => {
   try {
-    const { email, password } = req.body;
+    const { username, email, password } = req.body;
+    
+    // 构建查询条件，只包含提供的参数
+    const whereCondition: any = {};
+    if (username) whereCondition.username = username;
+    if (email) whereCondition.email = email;
+    
+    // 检查是否提供了至少一个登录凭证
+    if (!username && !email) {
+      return (res as any).error(400, '请提供用户名或邮箱');
+    }
     
     // 检查用户是否存在
     const user = await User.findOne({
-      where: { email }
+      where: whereCondition
     });
     if (!user) {
-      return res.error(400, '邮箱或密码错误');
+      return (res as any).error(400, '用户名/邮箱或密码错误');
     }
     
     // 检查密码是否正确
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      return res.error(400, '邮箱或密码错误');
+      return (res as any).error(400, '用户名/邮箱或密码错误');
     }
     
     // 生成JWT令牌（简化版本，不使用expiresIn选项）
@@ -87,7 +97,7 @@ export const login = async (req: Request, res: CustomResponse) => {
       process.env.JWT_SECRET || 'default_secret_key'
     );
     
-    res.success({
+    (res as any).success({
       token,
       user: {
         id: user.id,
@@ -98,48 +108,48 @@ export const login = async (req: Request, res: CustomResponse) => {
   } catch (error: any) {
     console.error('Login error:', error.message);
     console.error('Error stack:', error.stack);
-    res.error(500, '服务器错误', { error: error.message });
+    (res as any).error(500, '服务器错误', { error: error.message });
   }
 };
 
 // 获取当前用户信息
-export const getCurrentUser = async (req: any, res: CustomResponse) => {
+export const getCurrentUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    res.success({ user: req.user });
+    (res as any).success({ user: req.user });
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 
 // 发送验证码
-export const sendCode = async (req: Request, res: CustomResponse) => {
+export const sendCode = async (req: Request, res: Response) => {
   try {
     const { phone } = req.body;
     if (!phone) {
-      return res.error(400, '手机号不能为空');
+      return (res as any).error(400, '手机号不能为空');
     }
 
     // 发送验证码
     await sendVerificationCode(phone);
-    res.success(null, '验证码发送成功');
+    (res as any).success(null, '验证码发送成功');
   } catch (error: any) {
     console.error('发送验证码失败:', error.message);
-    res.error(400, error.message);
+    (res as any).error(400, error.message);
   }
 };
 
 // 手机号验证码登录
-export const phoneLogin = async (req: Request, res: CustomResponse) => {
+export const phoneLogin = async (req: Request, res: Response) => {
   try {
     const { phone, code } = req.body;
     if (!phone || !code) {
-      return res.error(400, '手机号和验证码不能为空');
+      return (res as any).error(400, '手机号和验证码不能为空');
     }
 
     // 验证验证码
     const isValid = verifyCode(phone, code);
     if (!isValid) {
-      return res.error(400, '验证码无效或已过期');
+      return (res as any).error(400, '验证码无效或已过期');
     }
 
     // 查找用户
@@ -171,7 +181,7 @@ export const phoneLogin = async (req: Request, res: CustomResponse) => {
       process.env.JWT_SECRET || 'default_secret_key'
     );
 
-    res.success({
+    (res as any).success({
       token,
       user: {
         id: user.id,
@@ -183,6 +193,6 @@ export const phoneLogin = async (req: Request, res: CustomResponse) => {
   } catch (error: any) {
     console.error('手机号登录失败:', error.message);
     console.error('错误栈:', error.stack);
-    res.error(500, '服务器错误', { error: error.message });
+    (res as any).error(500, '服务器错误', { error: error.message });
   }
 };

@@ -142,6 +142,19 @@ User.init(
         }
       },
     },
+    // 添加索引，提高查询性能
+    indexes: [
+      // 按用户名查询索引
+      { name: 'idx_user_username', fields: ['username'], unique: true },
+      // 按邮箱查询索引
+      { name: 'idx_user_email', fields: ['email'], unique: true },
+      // 按角色查询索引
+      { name: 'idx_user_role_id', fields: ['role_id'] },
+      // 按状态查询索引
+      { name: 'idx_user_status', fields: ['status'] },
+      // 复合索引：按角色和状态查询
+      { name: 'idx_user_role_status', fields: ['role_id', 'status'] }
+    ]
   }
 );
 

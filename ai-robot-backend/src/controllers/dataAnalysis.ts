@@ -1,64 +1,64 @@
+import { Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { CustomResponse } from '../types/CustomResponse';
 import DataAnalysisService from '../services/dataAnalysisService';
 
 // 获取设备使用统计
-export const getDeviceUsageStats = async (req: AuthenticatedRequest, res: CustomResponse) => {
+export const getDeviceUsageStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { days = 30 } = req.query;
     const stats = await DataAnalysisService.getDeviceUsageStats(req.user.id, parseInt(days as string));
-    res.success({ stats });
+    (res as any).success({ stats });
   } catch (error) {
-    res.error(500, error instanceof Error ? error.message : '服务器错误');
+    (res as any).error(500, error instanceof Error ? error.message : '服务器错误');
   }
 };
 
 // 获取动作使用统计
-export const getActionUsageStats = async (req: AuthenticatedRequest, res: CustomResponse) => {
+export const getActionUsageStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { days = 30 } = req.query;
     const stats = await DataAnalysisService.getActionUsageStats(req.user.id, parseInt(days as string));
-    res.success({ stats });
+    (res as any).success({ stats });
   } catch (error) {
-    res.error(500, error instanceof Error ? error.message : '服务器错误');
+    (res as any).error(500, error instanceof Error ? error.message : '服务器错误');
   }
 };
 
 // 获取对话趋势
-export const getConversationTrend = async (req: AuthenticatedRequest, res: CustomResponse) => {
+export const getConversationTrend = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { days = 30 } = req.query;
     const trend = await DataAnalysisService.getConversationTrend(req.user.id, parseInt(days as string));
-    res.success({ trend });
+    (res as any).success({ trend });
   } catch (error) {
-    res.error(500, error instanceof Error ? error.message : '服务器错误');
+    (res as any).error(500, error instanceof Error ? error.message : '服务器错误');
   }
 };
 
 // 获取设备激活率
-export const getDeviceActivationRate = async (req: AuthenticatedRequest, res: CustomResponse) => {
+export const getDeviceActivationRate = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { days = 30 } = req.query;
     const rate = await DataAnalysisService.getDeviceActivationRate(req.user.id, parseInt(days as string));
-    res.success(rate);
+    (res as any).success(rate);
   } catch (error) {
-    res.error(500, error instanceof Error ? error.message : '服务器错误');
+    (res as any).error(500, error instanceof Error ? error.message : '服务器错误');
   }
 };
 
 // 获取AI响应效率统计
-export const getAIResponseStats = async (req: AuthenticatedRequest, res: CustomResponse) => {
+export const getAIResponseStats = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { days = 30 } = req.query;
     const stats = await DataAnalysisService.getAIResponseStats(req.user.id, parseInt(days as string));
-    res.success(stats);
+    (res as any).success(stats);
   } catch (error) {
-    res.error(500, error instanceof Error ? error.message : '服务器错误');
+    (res as any).error(500, error instanceof Error ? error.message : '服务器错误');
   }
 };
 
 // 获取综合数据分析
-export const getComprehensiveAnalysis = async (req: AuthenticatedRequest, res: CustomResponse) => {
+export const getComprehensiveAnalysis = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { days = 30 } = req.query;
     const daysNum = parseInt(days as string);
@@ -78,7 +78,7 @@ export const getComprehensiveAnalysis = async (req: AuthenticatedRequest, res: C
       DataAnalysisService.getAIResponseStats(req.user.id, daysNum)
     ]);
     
-    res.success({
+    (res as any).success({
       deviceUsageStats,
       actionUsageStats,
       conversationTrend,
@@ -86,6 +86,6 @@ export const getComprehensiveAnalysis = async (req: AuthenticatedRequest, res: C
       aiResponseStats
     });
   } catch (error) {
-    res.error(500, error instanceof Error ? error.message : '服务器错误');
+    (res as any).error(500, error instanceof Error ? error.message : '服务器错误');
   }
 };

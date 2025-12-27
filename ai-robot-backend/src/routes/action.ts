@@ -1,5 +1,5 @@
 import express from 'express';
-import { getActions, createAction, updateAction, deleteAction, getAction, executeAction } from '../controllers/action';
+import { getActions, createAction, updateAction, deleteAction, getActionById, executeAction } from '../controllers/action';
 import auth from '../middleware/auth';
 
 const router = express.Router();
@@ -11,7 +11,7 @@ router.get('/', auth, getActions);
 router.post('/', auth, createAction);
 
 // 获取单个动作信息
-router.get('/:id', auth, getAction);
+router.get('/:id', auth, getActionById);
 
 // 更新动作信息
 router.put('/:id', auth, updateAction);

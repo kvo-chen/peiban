@@ -1,5 +1,6 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
 import { Op } from 'sequelize';
+import { AuthenticatedRequest } from '../middleware/auth';
 import User from '../models/User';
 import Role from '../models/Role';
 import Permission from '../models/Permission';
@@ -9,7 +10,7 @@ import OperationLog from '../models/OperationLog';
 // 创建用户管理控制器
 
 // 获取所有用户列表
-export const getUsers = async (req: Request, res: Response) => {
+export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const users = await User.findAll({
       include: [{
@@ -18,14 +19,14 @@ export const getUsers = async (req: Request, res: Response) => {
       }],
       attributes: { exclude: ['password'] }
     });
-    res.status(200).json(users);
+    (res as any).success({ users });
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    (res as any).error(500, '服务器错误', { error: error.message });
   }
 };
 
 // 创建新用户
-export const createUser = async (req: Request, res: Response) => {
+export const createUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { username, email, password, phone, role_id } = req.body;
     
@@ -39,7 +40,7 @@ export const createUser = async (req: Request, res: Response) => {
       }
     });
     if (userExists) {
-      return res.status(400).json({ message: 'User already exists' });
+      return (res as any).error(400, '用户已存在');
     }
     
     // 创建新用户
@@ -57,14 +58,14 @@ export const createUser = async (req: Request, res: Response) => {
       details: `Created user ${username}`
     });
     
-    res.status(201).json({ message: 'User created successfully', user });
+    (res as any).created({ user: user.toJSON() }, '用户创建成功');
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    (res as any).error(500, '服务器错误', { error: error.message });
   }
 };
 
 // 更新用户信息
-export const updateUser = async (req: Request, res: Response) => {
+export const updateUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { username, email, phone, role_id, status } = req.body;
@@ -72,7 +73,7 @@ export const updateUser = async (req: Request, res: Response) => {
     // 查找用户
     const user = await User.findByPk(id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return (res as any).error(404, '用户不存在');
     }
     
     // 更新用户信息
@@ -90,21 +91,21 @@ export const updateUser = async (req: Request, res: Response) => {
       details: `Updated user ${username}`
     });
     
-    res.status(200).json({ message: 'User updated successfully', user });
+    (res as any).success({ user: user.toJSON() }, '用户更新成功');
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    (res as any).error(500, '服务器错误', { error: error.message });
   }
 };
 
 // 禁用用户
-export const disableUser = async (req: Request, res: Response) => {
+export const disableUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     
     // 查找用户
     const user = await User.findByPk(id);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return (res as any).error(404, '用户不存在');
     }
     
     // 禁用用户
@@ -122,24 +123,24 @@ export const disableUser = async (req: Request, res: Response) => {
       details: `Disabled user ${user.username}`
     });
     
-    res.status(200).json({ message: 'User disabled successfully' });
+    (res as any).success(null, '用户禁用成功');
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    (res as any).error(500, '服务器错误', { error: error.message });
   }
 };
 
 // 获取所有角色
-export const getRoles = async (req: Request, res: Response) => {
+export const getRoles = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const roles = await Role.findAll();
-    res.status(200).json(roles);
+    (res as any).success({ roles });
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    (res as any).error(500, '服务器错误', { error: error.message });
   }
 };
 
 // 创建角色
-export const createRole = async (req: Request, res: Response) => {
+export const createRole = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { name, description } = req.body;
     
@@ -158,14 +159,14 @@ export const createRole = async (req: Request, res: Response) => {
       details: `Created role ${name}`
     });
     
-    res.status(201).json({ message: 'Role created successfully', role });
+    (res as any).created({ role: role.toJSON() }, '角色创建成功');
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    (res as any).error(500, '服务器错误', { error: error.message });
   }
 };
 
 // 为角色分配权限
-export const assignPermissions = async (req: Request, res: Response) => {
+export const assignPermissions = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { role_id, permission_ids } = req.body;
     
@@ -191,24 +192,24 @@ export const assignPermissions = async (req: Request, res: Response) => {
       details: `Assigned permissions to role ${role_id}`
     });
     
-    res.status(200).json({ message: 'Permissions assigned successfully' });
+    (res as any).success(null, '权限分配成功');
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    (res as any).error(500, '服务器错误', { error: error.message });
   }
 };
 
 // 获取所有权限
-export const getPermissions = async (req: Request, res: Response) => {
+export const getPermissions = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const permissions = await Permission.findAll();
-    res.status(200).json(permissions);
+    (res as any).success({ permissions });
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    (res as any).error(500, '服务器错误', { error: error.message });
   }
 };
 
 // 获取操作日志
-export const getOperationLogs = async (req: Request, res: Response) => {
+export const getOperationLogs = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { page = 1, limit = 10 } = req.query;
     const offset = (Number(page) - 1) * Number(limit);
@@ -219,13 +220,13 @@ export const getOperationLogs = async (req: Request, res: Response) => {
       order: [['created_at', 'DESC']]
     });
     
-    res.status(200).json({
-      logs: logs.rows,
+    (res as any).success({
+      logs: logs.rows.map(log => log.toJSON()),
       total: logs.count,
       page: Number(page),
       limit: Number(limit)
     });
   } catch (error: any) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    (res as any).error(500, '服务器错误', { error: error.message });
   }
 };

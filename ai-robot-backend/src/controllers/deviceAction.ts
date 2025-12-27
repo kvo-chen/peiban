@@ -11,9 +11,9 @@ export const getDeviceActions = async (req: AuthenticatedRequest, res: Response)
       where: { device_id: deviceId },
       include: [{ model: Action }]
     });
-    res.success({ deviceActions });
+    (res as any).success({ deviceActions });
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 
@@ -27,7 +27,7 @@ export const addDeviceAction = async (req: AuthenticatedRequest, res: Response) 
       where: { device_id: deviceId, action_id: actionId }
     });
     if (deviceActionExists) {
-      return res.error(400, '设备动作映射已存在');
+      return (res as any).error(400, '设备动作映射已存在');
     }
     
     // 创建新的设备动作映射
@@ -37,9 +37,9 @@ export const addDeviceAction = async (req: AuthenticatedRequest, res: Response) 
       prompt
     });
     
-    res.created({ deviceAction }, '设备动作映射添加成功');
+    (res as any).created({ deviceAction }, '设备动作映射添加成功');
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 
@@ -52,7 +52,7 @@ export const updateDeviceAction = async (req: AuthenticatedRequest, res: Respons
     // 检查设备动作映射是否存在
     const deviceAction = await DeviceAction.findByPk(id);
     if (!deviceAction) {
-      return res.error(404, '设备动作映射不存在');
+      return (res as any).error(404, '设备动作映射不存在');
     }
     
     // 更新设备动作映射
@@ -64,9 +64,9 @@ export const updateDeviceAction = async (req: AuthenticatedRequest, res: Respons
     // 获取更新后的设备动作映射
     const updatedDeviceAction = await DeviceAction.findByPk(id);
     
-    res.success({ deviceAction: updatedDeviceAction }, '设备动作映射更新成功');
+    (res as any).success({ deviceAction: updatedDeviceAction }, '设备动作映射更新成功');
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 
@@ -78,7 +78,7 @@ export const deleteDeviceAction = async (req: AuthenticatedRequest, res: Respons
     // 检查设备动作映射是否存在
     const deviceAction = await DeviceAction.findByPk(id);
     if (!deviceAction) {
-      return res.error(404, '设备动作映射不存在');
+      return (res as any).error(404, '设备动作映射不存在');
     }
     
     // 删除设备动作映射
@@ -86,8 +86,8 @@ export const deleteDeviceAction = async (req: AuthenticatedRequest, res: Respons
       where: { id }
     });
     
-    res.success(null, '设备动作映射删除成功');
+    (res as any).success(null, '设备动作映射删除成功');
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };

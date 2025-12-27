@@ -6,7 +6,42 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getDevice = exports.removeDevice = exports.updateDevice = exports.addDevice = exports.getDevices = void 0;
 const Device_1 = __importDefault(require("../models/Device"));
 const redis_1 = require("../config/redis");
-// 获取用户的设备列表
+const websocketService_1 = __importDefault(require("../services/websocketService"));
+/**
+ * @swagger
+ * /devices:
+ *   get:
+ *     summary: 获取用户的设备列表
+ *     tags: [设备管理]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: 成功获取设备列表
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: 操作成功
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     devices:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Device'
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *       500:
+ *         description: 服务器错误
+ */
 const getDevices = async (req, res) => {
     try {
         // 尝试从缓存获取
@@ -19,16 +54,69 @@ const getDevices = async (req, res) => {
         const devices = await Device_1.default.findAll({
             where: { user_id: req.user.id }
         });
-        // 存入缓存前转换为普通对象，避免序列化问题
-        await redis_1.Cache.set(cacheKey, devices.map(device => device.toJSON()), 600);
-        res.success({ devices });
+        // 转换为普通对象，避免序列化问题
+        const devicesJSON = devices.map(device => typeof device.toJSON === 'function' ? device.toJSON() : device);
+        await redis_1.Cache.set(cacheKey, devicesJSON, 600);
+        res.success({ devices: devicesJSON });
     }
     catch (error) {
         res.error(500, '服务器错误');
     }
 };
 exports.getDevices = getDevices;
-// 绑定新设备
+/**
+ * @swagger
+ * /devices:
+ *   post:
+ *     summary: 绑定新设备
+ *     tags: [设备管理]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - deviceName
+ *               - deviceType
+ *             properties:
+ *               deviceName:
+ *                 type: string
+ *                 description: 设备名称
+ *                 example: 智能音箱
+ *               deviceType:
+ *                 type: string
+ *                 description: 设备类型
+ *                 example: speaker
+ *     responses:
+ *       201:
+ *         description: 设备绑定成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 201
+ *                 message:
+ *                   type: string
+ *                   example: 设备绑定成功
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     device:
+ *                       $ref: '#/components/schemas/Device'
+ *                 timestamp:
+ *                   type: string
+ *                   format: date-time
+ *       400:
+ *         description: 请求参数错误
+ *       500:
+ *         description: 服务器错误
+ */
 const addDevice = async (req, res) => {
     try {
         const { deviceName, deviceType } = req.body;
@@ -41,7 +129,7 @@ const addDevice = async (req, res) => {
         // 清除设备列表缓存
         const cacheKey = `devices:${req.user.id}`;
         await redis_1.Cache.del(cacheKey);
-        res.created({ device }, '设备绑定成功');
+        res.created({ device: typeof device.toJSON === 'function' ? device.toJSON() : device }, '设备绑定成功');
     }
     catch (error) {
         res.error(500, '服务器错误');
@@ -60,6 +148,8 @@ const updateDevice = async (req, res) => {
         if (!device) {
             return res.error(404, '设备不存在');
         }
+        // 检查状态是否变化
+        const statusChanged = status && status !== device.status;
         // 更新设备信息
         await Device_1.default.update({ device_name: deviceName, device_type: deviceType, status }, { where: { id } });
         // 获取更新后的设备信息
@@ -69,7 +159,11 @@ const updateDevice = async (req, res) => {
         const deviceCacheKey = `device:${id}`;
         await redis_1.Cache.del(cacheKey);
         await redis_1.Cache.del(deviceCacheKey);
-        res.success({ device: updatedDevice }, '设备信息更新成功');
+        // 如果状态变化，通过WebSocket推送更新
+        if (statusChanged && updatedDevice) {
+            websocketService_1.default.sendDeviceStatusUpdate(req.user.id, parseInt(id), updatedDevice.status);
+        }
+        res.success({ device: updatedDevice ? (typeof updatedDevice.toJSON === 'function' ? updatedDevice.toJSON() : updatedDevice) : null }, '设备信息更新成功');
     }
     catch (error) {
         res.error(500, '服务器错误');
@@ -120,9 +214,10 @@ const getDevice = async (req, res) => {
         if (!device) {
             return res.error(404, '设备不存在');
         }
-        // 存入缓存前转换为普通对象，避免序列化问题
-        await redis_1.Cache.set(cacheKey, device.toJSON(), 900);
-        res.success({ device });
+        // 转换为普通对象，避免序列化问题
+        const deviceJSON = typeof device.toJSON === 'function' ? device.toJSON() : device;
+        await redis_1.Cache.set(cacheKey, deviceJSON, 900);
+        res.success({ device: deviceJSON });
     }
     catch (error) {
         res.error(500, '服务器错误');

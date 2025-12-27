@@ -26,6 +26,23 @@ code {
   .main-content {
     padding: 16px;
   }
+  
+  /* 在移动端隐藏桌面菜单 */
+  .desktop-menu {
+    display: none !important;
+  }
+  
+  /* 在移动端显示菜单按钮 */
+  .mobile-menu-btn {
+    display: block !important;
+  }
+}
+
+@media (min-width: 769px) {
+  /* 在桌面端隐藏菜单按钮 */
+  .mobile-menu-btn {
+    display: none !important;
+  }
 }
 
 @media (max-width: 480px) {

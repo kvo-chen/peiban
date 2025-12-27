@@ -59,31 +59,29 @@ const Login: React.FC = () => {
     }
   };
 
-  // 处理邮箱登录 - 暂时跳过验证，直接登录
-  const handleEmailSubmit = async (_values: LoginRequest) => {
+  // 处理邮箱登录
+  const handleEmailSubmit = async (values: LoginRequest) => {
     try {
       setLoading(true);
-      // 存储假token到localStorage，让ProtectedRoute允许访问
-      localStorage.setItem('token', 'mock_token');
+      await authApi.login(values);
       message.success('登录成功');
       navigate('/');
     } catch (err: any) {
-      message.error('登录失败，请稍后重试');
+      message.error(err.response?.data?.message || '登录失败，请稍后重试');
     } finally {
       setLoading(false);
     }
   };
 
-  // 处理手机号登录 - 暂时跳过验证，直接登录
-  const handlePhoneSubmit = async (_values: PhoneLoginRequest) => {
+  // 处理手机号登录
+  const handlePhoneSubmit = async (values: PhoneLoginRequest) => {
     try {
       setLoading(true);
-      // 存储假token到localStorage，让ProtectedRoute允许访问
-      localStorage.setItem('token', 'mock_token');
+      await authApi.phoneLogin(values);
       message.success('登录成功');
       navigate('/');
     } catch (err: any) {
-      message.error('登录失败，请稍后重试');
+      message.error(err.response?.data?.message || '登录失败，请稍后重试');
     } finally {
       setLoading(false);
     }
@@ -155,8 +153,8 @@ const Login: React.FC = () => {
               layout="vertical"
               onFinish={handleEmailSubmit}
               initialValues={{
-                email: '',
-                password: ''
+                email: 'test@example.com',
+                password: 'password123'
               }}
               autoComplete="on"
             >
@@ -169,9 +167,8 @@ const Login: React.FC = () => {
                   transition: 'all var(--transition-fast)'
                 }}>邮箱</span>}
                 rules={[
-                  // 暂时去掉必填验证，允许直接登录
-                  // { required: true, message: '请输入邮箱' },
-                  // { type: 'email', message: '请输入有效的邮箱地址' }
+                  { required: true, message: '请输入邮箱' },
+                  { type: 'email', message: '请输入有效的邮箱地址' }
                 ]}
                 style={{ marginBottom: '16px' }}
               >
@@ -209,8 +206,7 @@ const Login: React.FC = () => {
                   transition: 'all var(--transition-fast)'
                 }}>密码</span>}
                 rules={[
-                  // 暂时去掉必填验证，允许直接登录
-                  // { required: true, message: '请输入密码' }
+                  { required: true, message: '请输入密码' }
                 ]}
                 style={{ marginBottom: '24px' }}
               >

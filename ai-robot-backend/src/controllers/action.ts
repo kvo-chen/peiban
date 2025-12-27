@@ -1,15 +1,15 @@
-import { Response } from 'express';
-import Action from '../models/Action';
+import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
+import Action from '../models/Action';
 import { Op } from 'sequelize';
 
 // 获取所有动作列表
 export const getActions = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const actions = await Action.findAll();
-    res.success({ actions });
+    (res as any).success({ actions });
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 
@@ -21,7 +21,7 @@ export const createAction = async (req: AuthenticatedRequest, res: Response) => 
     // 检查动作是否已存在
     const actionExists = await Action.findOne({ where: { name } });
     if (actionExists) {
-      return res.error(400, '动作已存在');
+      return (res as any).error(400, '动作已存在');
     }
     
     // 验证动作组合的步骤
@@ -38,13 +38,13 @@ export const createAction = async (req: AuthenticatedRequest, res: Response) => 
       steps
     });
     
-    res.created({ action }, '动作创建成功');
+    (res as any).created({ action }, '动作创建成功');
   } catch (error) {
-    res.error(500, error instanceof Error ? error.message : '服务器错误');
+    (res as any).error(500, error instanceof Error ? error.message : '服务器错误');
   }
 };
 
-// 更新动作信息
+// 更新动作
 export const updateAction = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
@@ -53,7 +53,7 @@ export const updateAction = async (req: AuthenticatedRequest, res: Response) => 
     // 检查动作是否存在
     const action = await Action.findByPk(id);
     if (!action) {
-      return res.error(404, '动作不存在');
+      return (res as any).error(404, '动作不存在');
     }
     
     // 验证动作组合的步骤
@@ -70,9 +70,9 @@ export const updateAction = async (req: AuthenticatedRequest, res: Response) => 
     // 获取更新后的动作信息
     const updatedAction = await Action.findByPk(id);
     
-    res.success({ action: updatedAction }, '动作信息更新成功');
+    (res as any).success({ action: updatedAction }, '动作信息更新成功');
   } catch (error) {
-    res.error(500, error instanceof Error ? error.message : '服务器错误');
+    (res as any).error(500, error instanceof Error ? error.message : '服务器错误');
   }
 };
 
@@ -84,7 +84,7 @@ export const deleteAction = async (req: AuthenticatedRequest, res: Response) => 
     // 检查动作是否存在
     const action = await Action.findByPk(id);
     if (!action) {
-      return res.error(404, '动作不存在');
+      return (res as any).error(404, '动作不存在');
     }
     
     // 检查动作是否被其他动作组合使用
@@ -98,7 +98,7 @@ export const deleteAction = async (req: AuthenticatedRequest, res: Response) => 
     });
     
     if (isUsedInCombination > 0) {
-      return res.error(400, '该动作被用于动作组合中，请先从组合中移除');
+      return (res as any).error(400, '该动作被用于动作组合中，请先从组合中移除');
     }
     
     // 删除动作
@@ -106,21 +106,21 @@ export const deleteAction = async (req: AuthenticatedRequest, res: Response) => 
       where: { id }
     });
     
-    res.success(null, '动作删除成功');
+    (res as any).success(null, '动作删除成功');
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 
-// 获取单个动作信息
-export const getAction = async (req: AuthenticatedRequest, res: Response) => {
+// 获取单个动作详情
+export const getActionById = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     
     // 检查动作是否存在
     const action = await Action.findByPk(id);
     if (!action) {
-      return res.error(404, '动作不存在');
+      return (res as any).error(404, '动作不存在');
     }
     
     // 如果是动作组合，获取组合中包含的具体动作信息
@@ -135,9 +135,9 @@ export const getAction = async (req: AuthenticatedRequest, res: Response) => {
       combinationDetails = actions;
     }
     
-    res.success({ action, combinationDetails });
+    (res as any).success({ action, combinationDetails });
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 
@@ -178,7 +178,7 @@ export const executeAction = async (req: AuthenticatedRequest, res: Response) =>
     // 检查动作是否存在
     const action = await Action.findByPk(actionId);
     if (!action) {
-      return res.error(404, '动作不存在');
+      return (res as any).error(404, '动作不存在');
     }
     
     // 根据动作类型执行不同的逻辑
@@ -191,9 +191,9 @@ export const executeAction = async (req: AuthenticatedRequest, res: Response) =>
       executionResult = await executeSingleAction(action);
     }
     
-    res.success({ result: executionResult }, '动作执行成功');
+    (res as any).success({ result: executionResult }, '动作执行成功');
   } catch (error) {
-    res.error(500, error instanceof Error ? error.message : '服务器错误');
+    (res as any).error(500, error instanceof Error ? error.message : '服务器错误');
   }
 };
 

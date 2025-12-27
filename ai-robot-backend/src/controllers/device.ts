@@ -1,8 +1,9 @@
+import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../middleware/auth';
-import { CustomResponse } from '../types/CustomResponse';
 import Device from '../models/Device';
 import { Cache } from '../config/redis';
 import websocketService from '../services/websocketService';
+import { Op } from 'sequelize';
 
 /**
  * @swagger
@@ -12,6 +13,34 @@ import websocketService from '../services/websocketService';
  *     tags: [设备管理]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: 搜索设备名称或类型
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *         description: 设备状态过滤
+ *       - in: query
+ *         name: deviceType
+ *         schema:
+ *           type: string
+ *         description: 设备类型过滤
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: 分页页码
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: 每页数量
  *     responses:
  *       200:
  *         description: 成功获取设备列表
@@ -33,34 +62,93 @@ import websocketService from '../services/websocketService';
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/Device'
+ *                     total:
+ *                       type: integer
+ *                       example: 100
+ *                     page:
+ *                       type: integer
+ *                       example: 1
+ *                     limit:
+ *                       type: integer
+ *                       example: 10
  *                 timestamp:
  *                   type: string
  *                   format: date-time
  *       500:
  *         description: 服务器错误
  */
-export const getDevices = async (req: AuthenticatedRequest, res: CustomResponse) => {
+export const getDevices = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    // 尝试从缓存获取
-    const cacheKey = `devices:${req.user.id}`;
+    const { search, status, deviceType, page = 1, limit = 10 } = req.query;
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const offset = (pageNum - 1) * limitNum;
+    
+    // 构建查询条件
+    const whereClause: any = {
+      user_id: req.user.id
+    };
+    
+    // 添加搜索条件
+    if (search) {
+      whereClause[Op.or] = [
+        { device_name: { [Op.like]: `%${search}%` } },
+        { device_type: { [Op.like]: `%${search}%` } }
+      ];
+    }
+    
+    // 添加状态过滤
+    if (status) {
+      whereClause.status = status;
+    }
+    
+    // 添加设备类型过滤
+    if (deviceType) {
+      whereClause.device_type = deviceType;
+    }
+    
+    // 构建缓存键，包含所有查询参数
+    const cacheKey = `devices:${req.user.id}:${search || 'all'}:${status || 'all'}:${deviceType || 'all'}:${page}:${limit}`;
+    
+    // 先尝试从缓存获取
     const cachedDevices = await Cache.get(cacheKey);
     
     if (cachedDevices) {
-      return res.success({ devices: cachedDevices });
+      // 如果缓存存在，直接返回缓存数据
+      return (res as any).success(cachedDevices);
     }
     
-    // 从数据库获取
-    const devices = await Device.findAll({
-      where: { user_id: req.user.id }
+    // 缓存不存在，从数据库获取
+    const { count, rows: devices } = await Device.findAndCountAll({
+      where: whereClause,
+      offset,
+      limit: limitNum,
+      order: [['created_at', 'DESC']]
     });
     
     // 转换为普通对象，避免序列化问题
-    const devicesJSON = devices.map(device => device.toJSON());
-    await Cache.set(cacheKey, devicesJSON, 600);
+    const devicesJSON = devices.map(device => typeof device.toJSON === 'function' ? device.toJSON() : device);
     
-    res.success({ devices: devicesJSON });
+    // 准备响应数据
+    const responseData = {
+      devices: devicesJSON,
+      total: count,
+      page: pageNum,
+      limit: limitNum
+    };
+    
+    // 尝试设置缓存，但不影响主要功能
+    try {
+      await Cache.set(cacheKey, responseData, 600);
+    } catch (cacheError) {
+      console.error('Cache error:', cacheError);
+      // 缓存失败不影响主要功能
+    }
+    
+    (res as any).success(responseData);
   } catch (error) {
-    res.error(500, '服务器错误');
+    console.error('Error getting devices:', error);
+    (res as any).error(500, '服务器错误');
   }
 };
 
@@ -117,7 +205,7 @@ export const getDevices = async (req: AuthenticatedRequest, res: CustomResponse)
  *       500:
  *         description: 服务器错误
  */
-export const addDevice = async (req: AuthenticatedRequest, res: CustomResponse) => {
+export const addDevice = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { deviceName, deviceType } = req.body;
     
@@ -132,14 +220,14 @@ export const addDevice = async (req: AuthenticatedRequest, res: CustomResponse) 
     const cacheKey = `devices:${req.user.id}`;
     await Cache.del(cacheKey);
     
-    res.created({ device: device.toJSON() }, '设备绑定成功');
+    (res as any).created({ device: typeof device.toJSON === 'function' ? device.toJSON() : device }, '设备绑定成功');
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 
 // 更新设备信息
-export const updateDevice = async (req: AuthenticatedRequest, res: CustomResponse) => {
+export const updateDevice = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     const { deviceName, deviceType, status } = req.body;
@@ -149,7 +237,7 @@ export const updateDevice = async (req: AuthenticatedRequest, res: CustomRespons
       where: { id, user_id: req.user.id }
     });
     if (!device) {
-      return res.error(404, '设备不存在');
+      return (res as any).error(404, '设备不存在');
     }
     
     // 检查状态是否变化
@@ -175,14 +263,14 @@ export const updateDevice = async (req: AuthenticatedRequest, res: CustomRespons
       websocketService.sendDeviceStatusUpdate(req.user.id, parseInt(id), updatedDevice.status);
     }
     
-    res.success({ device: updatedDevice?.toJSON() }, '设备信息更新成功');
+    (res as any).success({ device: updatedDevice ? (typeof updatedDevice.toJSON === 'function' ? updatedDevice.toJSON() : updatedDevice) : null }, '设备信息更新成功');
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 
 // 解绑设备
-export const removeDevice = async (req: AuthenticatedRequest, res: CustomResponse) => {
+export const removeDevice = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -191,7 +279,7 @@ export const removeDevice = async (req: AuthenticatedRequest, res: CustomRespons
       where: { id, user_id: req.user.id }
     });
     if (!device) {
-      return res.error(404, '设备不存在');
+      return (res as any).error(404, '设备不存在');
     }
     
     // 删除设备
@@ -205,14 +293,14 @@ export const removeDevice = async (req: AuthenticatedRequest, res: CustomRespons
     await Cache.del(cacheKey);
     await Cache.del(deviceCacheKey);
     
-    res.success(null, '设备解绑成功');
+    (res as any).success(null, '设备解绑成功');
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
   }
 };
 
 // 获取单个设备信息
-export const getDevice = async (req: AuthenticatedRequest, res: CustomResponse) => {
+export const getDevice = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { id } = req.params;
     
@@ -221,7 +309,7 @@ export const getDevice = async (req: AuthenticatedRequest, res: CustomResponse) 
     const cachedDevice = await Cache.get(cacheKey);
     
     if (cachedDevice) {
-      return res.success({ device: cachedDevice });
+      return (res as any).success({ device: cachedDevice });
     }
     
     // 从数据库获取
@@ -229,15 +317,185 @@ export const getDevice = async (req: AuthenticatedRequest, res: CustomResponse) 
       where: { id, user_id: req.user.id }
     });
     if (!device) {
-      return res.error(404, '设备不存在');
+      return (res as any).error(404, '设备不存在');
     }
     
     // 转换为普通对象，避免序列化问题
-    const deviceJSON = device.toJSON();
+    const deviceJSON = typeof device.toJSON === 'function' ? device.toJSON() : device;
     await Cache.set(cacheKey, deviceJSON, 900);
     
-    res.success({ device: deviceJSON });
+    (res as any).success({ device: deviceJSON });
   } catch (error) {
-    res.error(500, '服务器错误');
+    (res as any).error(500, '服务器错误');
+  }
+};
+
+/**
+ * @swagger
+ * /devices/batch-delete: 
+ *   post:
+ *     summary: 批量删除设备
+ *     tags: [设备管理]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - deviceIds
+ *             properties:
+ *               deviceIds:
+ *                 type: array
+ *                 items:
+ *                   type: number
+ *                 description: 设备ID数组
+ *     responses:
+ *       200:
+ *         description: 批量删除成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: 批量删除设备成功
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     deletedCount:
+ *                       type: integer
+ *                       example: 3
+ *       400:
+ *         description: 请求参数错误
+ *       500:
+ *         description: 服务器错误
+ */
+export const batchDeleteDevices = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { deviceIds } = req.body;
+    
+    if (!Array.isArray(deviceIds) || deviceIds.length === 0) {
+      return (res as any).error(400, '设备ID数组不能为空');
+    }
+    
+    // 批量删除设备
+    const result = await Device.destroy({
+      where: {
+        id: { [Op.in]: deviceIds },
+        user_id: req.user.id
+      }
+    });
+    
+    // 清除相关缓存
+    const cacheKey = `devices:${req.user.id}`;
+    await Cache.delPattern(`${cacheKey}:*`); // 清除所有设备列表缓存
+    deviceIds.forEach(async (id: number) => {
+      const deviceCacheKey = `device:${id}`;
+      await Cache.del(deviceCacheKey); // 清除单个设备缓存
+    });
+    
+    (res as any).success({ deletedCount: result }, '批量删除设备成功');
+  } catch (error) {
+    console.error('Error batch deleting devices:', error);
+    (res as any).error(500, '服务器错误');
+  }
+};
+
+/**
+ * @swagger
+ * /devices/batch-update-status: 
+ *   post:
+ *     summary: 批量更新设备状态
+ *     tags: [设备管理]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - deviceIds
+ *               - status
+ *             properties:
+ *               deviceIds:
+ *                 type: array
+ *                 items:
+ *                   type: number
+ *                 description: 设备ID数组
+ *               status:
+ *                 type: string
+ *                 description: 设备状态
+ *                 enum: [online, offline, maintenance]
+ *     responses:
+ *       200:
+ *         description: 批量更新成功
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 code:
+ *                   type: integer
+ *                   example: 200
+ *                 message:
+ *                   type: string
+ *                   example: 批量更新设备状态成功
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     updatedCount:
+ *                       type: integer
+ *                       example: 3
+ *       400:
+ *         description: 请求参数错误
+ *       500:
+ *         description: 服务器错误
+ */
+export const batchUpdateDevicesStatus = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { deviceIds, status } = req.body;
+    
+    if (!Array.isArray(deviceIds) || deviceIds.length === 0) {
+      return (res as any).error(400, '设备ID数组不能为空');
+    }
+    
+    if (!['online', 'offline', 'maintenance'].includes(status)) {
+      return (res as any).error(400, '无效的设备状态');
+    }
+    
+    // 批量更新设备状态
+    const result = await Device.update(
+      { status },
+      {
+        where: {
+          id: { [Op.in]: deviceIds },
+          user_id: req.user.id
+        }
+      }
+    );
+    
+    // 清除相关缓存
+    const cacheKey = `devices:${req.user.id}`;
+    await Cache.delPattern(`${cacheKey}:*`); // 清除所有设备列表缓存
+    deviceIds.forEach(async (id: number) => {
+      const deviceCacheKey = `device:${id}`;
+      await Cache.del(deviceCacheKey); // 清除单个设备缓存
+      // 通过WebSocket推送状态更新
+      websocketService.sendDeviceStatusUpdate(req.user.id, id, status as 'online' | 'offline');
+    });
+    
+    (res as any).success({ updatedCount: result[0] }, '批量更新设备状态成功');
+  } catch (error) {
+    console.error('Error batch updating devices status:', error);
+    (res as any).error(500, '服务器错误');
   }
 };

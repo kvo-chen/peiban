@@ -27,20 +27,22 @@ const chatWithAI = async (req, res) => {
         });
         // 提取设备可用的动作列表，用于OpenAI提示词
         const availableActions = deviceActions.map(da => {
-            if (da.action) {
+            // 使用类型断言来访问关联的Action信息
+            const deviceActionWithAction = da;
+            if (deviceActionWithAction.action) {
                 return {
-                    id: da.action.id,
-                    name: da.action.name,
-                    description: da.action.description,
-                    prompt: da.prompt
+                    id: deviceActionWithAction.action.id,
+                    name: deviceActionWithAction.action.name,
+                    description: deviceActionWithAction.action.description,
+                    prompt: deviceActionWithAction.prompt
                 };
             }
             else {
                 return {
-                    id: da.id,
+                    id: deviceActionWithAction.id,
                     name: '未知动作',
                     description: '',
-                    prompt: da.prompt
+                    prompt: deviceActionWithAction.prompt
                 };
             }
         });
@@ -107,7 +109,9 @@ const getChatHistory = async (req, res) => {
             order: [['created_at', 'DESC']],
             limit: Number(limit)
         });
-        res.success({ conversations });
+        // 转换为普通对象，避免序列化问题
+        const conversationsJSON = conversations.map(conv => conv.toJSON());
+        res.success({ conversations: conversationsJSON });
     }
     catch (error) {
         res.error(500, '服务器错误');

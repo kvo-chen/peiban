@@ -20,6 +20,8 @@ import websocketService from './services/websocketService';
 // Swagger配置
 import swaggerUi from 'swagger-ui-express';
 import swaggerDocs from './config/swagger';
+// 限流中间件
+import { generalLimiter, authLimiter, deviceLimiter, chatLimiter } from './middleware/rateLimiter';
 
 // 加载环境变量
 dotenv.config();
@@ -43,32 +45,32 @@ app.get('/', (req, res) => {
   res.send('AI陪伴机器人后端服务');
 });
 
-// 认证路由
-app.use('/api/auth', authRoutes);
+// 认证路由 - 使用严格的认证限流
+app.use('/api/auth', authLimiter, authRoutes);
 
-// 设备路由
-app.use('/api/devices', deviceRoutes);
+// 设备路由 - 使用设备管理限流
+app.use('/api/devices', deviceLimiter, deviceRoutes);
 
-// 设备心跳路由
-app.use('/api/device-heartbeat', deviceHeartbeatRoutes);
+// 设备心跳路由 - 使用通用限流
+app.use('/api/device-heartbeat', generalLimiter, deviceHeartbeatRoutes);
 
-// 动作路由
-app.use('/api/actions', actionRoutes);
+// 动作路由 - 使用通用限流
+app.use('/api/actions', generalLimiter, actionRoutes);
 
-// 设备动作映射路由
-app.use('/api/device-actions', deviceActionRoutes);
+// 设备动作映射路由 - 使用设备管理限流
+app.use('/api/device-actions', deviceLimiter, deviceActionRoutes);
 
-// 对话路由
-app.use('/api/chat', chatRoutes);
+// 对话路由 - 使用聊天限流
+app.use('/api/chat', chatLimiter, chatRoutes);
 
-// 用户管理路由
-app.use('/api/admin', userManagementRoutes);
+// 用户管理路由 - 使用通用限流
+app.use('/api/admin', generalLimiter, userManagementRoutes);
 
-// 设备分组路由
-app.use('/api/device-groups', deviceGroupRoutes);
+// 设备分组路由 - 使用设备管理限流
+app.use('/api/device-groups', deviceLimiter, deviceGroupRoutes);
 
-// 数据分析路由
-app.use('/api/analytics', dataAnalysisRoutes);
+// 数据分析路由 - 使用通用限流
+app.use('/api/analytics', generalLimiter, dataAnalysisRoutes);
 
 // Swagger API文档
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));

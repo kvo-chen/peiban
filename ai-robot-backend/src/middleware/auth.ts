@@ -1,55 +1,49 @@
-import { Request, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/User';
-import { CustomResponse } from '../types/CustomResponse';
 
 export interface AuthenticatedRequest extends Request {
   user?: any;
 }
 
-const auth = async (req: AuthenticatedRequest, res: CustomResponse, next: NextFunction) => {
+const auth = async (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
   try {
-    // 暂时跳过认证检查，直接通过所有请求
-    // 后续需要恢复认证时，取消以下注释并删除跳过逻辑
-    /*
+    // 从请求头获取token
     const token = req.header('Authorization')?.replace('Bearer ', '');
     
     if (!token) {
-      return res.status(401).json({ message: 'No token, authorization denied' });
+      return (res as any).error(401, '未提供认证令牌，访问被拒绝');
     }
     
+    // 验证token
     const decoded = jwt.verify(token, process.env.JWT_SECRET as string) as any;
+    
+    // 查找用户
     const user = await User.findByPk(decoded.id, {
       attributes: { exclude: ['password'] }
     });
     
     if (!user) {
-      return res.status(401).json({ message: 'User not found, authorization denied' });
+      return (res as any).error(401, '用户不存在，访问被拒绝');
     }
-    */
     
-    // 模拟一个默认用户
-    req.user = {
-      id: 1,
-      username: 'test_user',
-      email: 'test@example.com',
-      role_id: 1,
-      status: 'active',
-      mfa_enabled: false
-    };
+    // 检查用户状态
+    if ((user as any).status !== 'active') {
+      return (res as any).error(403, '用户账号已禁用，无法访问');
+    }
+    
+    // 将用户信息添加到请求对象
+    req.user = user;
     
     next();
   } catch (error) {
-    // 即使认证失败也直接通过，仅在开发环境临时使用
-    req.user = {
-      id: 1,
-      username: 'test_user',
-      email: 'test@example.com',
-      role_id: 1,
-      status: 'active',
-      mfa_enabled: false
-    };
-    next();
+    if (error instanceof jwt.JsonWebTokenError) {
+      return (res as any).error(401, '无效的认证令牌，访问被拒绝');
+    }
+    if (error instanceof jwt.TokenExpiredError) {
+      return (res as any).error(401, '认证令牌已过期，请重新登录');
+    }
+    return (res as any).error(401, '认证失败，访问被拒绝');
   }
 };
 

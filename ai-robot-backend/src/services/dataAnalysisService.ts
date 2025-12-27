@@ -3,11 +3,21 @@ import Conversation from '../models/Conversation';
 import Device from '../models/Device';
 import Action from '../models/Action';
 import DeviceAction from '../models/DeviceAction';
+import { Cache } from '../config/redis';
 
 // 数据分析服务
 class DataAnalysisService {
   // 获取设备使用统计
   static async getDeviceUsageStats(user_id: number, days: number = 30) {
+    // 构建缓存键
+    const cacheKey = `deviceUsageStats:${user_id}:${days}`;
+    
+    // 尝试从缓存获取
+    const cachedStats = await Cache.get(cacheKey);
+    if (cachedStats) {
+      return cachedStats;
+    }
+    
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     
     // 使用一次查询获取所有设备及其统计数据，避免循环查询
@@ -23,17 +33,17 @@ class DataAnalysisService {
           SELECT COUNT(*) 
           FROM conversations 
           WHERE conversations.device_id = Device.id 
-          AND conversations.user_id = ${user_id} 
-          AND conversations.created_at > '${startDate.toISOString()}'
+          AND conversations.user_id = ? 
+          AND conversations.created_at > ?
         )`), 'conversationCount'],
         // 使用子查询获取触发动作次数
         [literal(`(
           SELECT COUNT(*) 
           FROM conversations 
           WHERE conversations.device_id = Device.id 
-          AND conversations.user_id = ${user_id} 
+          AND conversations.user_id = ? 
           AND conversations.action_triggered IS NOT NULL 
-          AND conversations.created_at > '${startDate.toISOString()}'
+          AND conversations.created_at > ?
         )`), 'actionTriggeredCount'],
         // 使用子查询获取绑定的动作数量
         [literal(`(
@@ -41,7 +51,9 @@ class DataAnalysisService {
           FROM device_actions 
           WHERE device_actions.device_id = Device.id
         )`), 'boundActionsCount']
-      ]
+      ],
+      // 使用参数化查询，避免SQL注入
+      replacements: [user_id, startDate, user_id, startDate]
     });
     
     // 格式化结果
@@ -59,11 +71,23 @@ class DataAnalysisService {
       };
     });
     
+    // 设置缓存，过期时间为10分钟
+    await Cache.set(cacheKey, deviceStats, 600);
+    
     return deviceStats;
   }
   
   // 获取动作使用统计
   static async getActionUsageStats(user_id: number, days: number = 30) {
+    // 构建缓存键
+    const cacheKey = `actionUsageStats:${user_id}:${days}`;
+    
+    // 尝试从缓存获取
+    const cachedStats = await Cache.get(cacheKey);
+    if (cachedStats) {
+      return cachedStats;
+    }
+    
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     
     // 使用单个查询获取动作使用统计，避免循环查询
@@ -78,8 +102,8 @@ class DataAnalysisService {
           SELECT COUNT(*) 
           FROM conversations 
           WHERE conversations.action_triggered = Action.id 
-          AND conversations.user_id = ${user_id} 
-          AND conversations.created_at > '${startDate.toISOString()}'
+          AND conversations.user_id = ? 
+          AND conversations.created_at > ?
         )`), 'usageCount']
       ],
       where: {
@@ -89,11 +113,13 @@ class DataAnalysisService {
             SELECT DISTINCT action_id 
             FROM device_actions 
             WHERE device_id IN (
-              SELECT id FROM devices WHERE user_id = ${user_id}
+              SELECT id FROM devices WHERE user_id = ?
             )
           )`)
         }
-      }
+      },
+      // 使用参数化查询，避免SQL注入
+      replacements: [user_id, startDate, user_id]
     });
     
     // 格式化结果并排序
@@ -112,11 +138,23 @@ class DataAnalysisService {
     // 按使用次数排序
     actionStats.sort((a, b) => b.usageCount - a.usageCount);
     
+    // 设置缓存，过期时间为10分钟
+    await Cache.set(cacheKey, actionStats, 600);
+    
     return actionStats;
   }
   
   // 获取对话趋势
   static async getConversationTrend(user_id: number, days: number = 30) {
+    // 构建缓存键
+    const cacheKey = `conversationTrend:${user_id}:${days}`;
+    
+    // 尝试从缓存获取
+    const cachedStats = await Cache.get(cacheKey);
+    if (cachedStats) {
+      return cachedStats;
+    }
+    
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     
     // 生成日期范围
@@ -163,11 +201,23 @@ class DataAnalysisService {
       count: dateMap.get(date)
     }));
     
+    // 设置缓存，过期时间为10分钟
+    await Cache.set(cacheKey, conversationTrend, 600);
+    
     return conversationTrend;
   }
   
   // 获取设备激活率
   static async getDeviceActivationRate(user_id: number, days: number = 30) {
+    // 构建缓存键
+    const cacheKey = `deviceActivationRate:${user_id}:${days}`;
+    
+    // 尝试从缓存获取
+    const cachedStats = await Cache.get(cacheKey);
+    if (cachedStats) {
+      return cachedStats;
+    }
+    
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     
     // 获取用户的所有设备
@@ -186,21 +236,35 @@ class DataAnalysisService {
     });
     
     // 计算激活率
-    const activationRate = totalDevices > 0 ? (activeDevices / totalDevices) * 100 : 0;
+    const activationRate = totalDevices > 0 ? (Number(activeDevices) / Number(totalDevices)) * 100 : 0;
     
-    return {
+    const result = {
       totalDevices,
       activeDevices,
       activationRate: parseFloat(activationRate.toFixed(2))
     };
+    
+    // 设置缓存，过期时间为10分钟
+    await Cache.set(cacheKey, result, 600);
+    
+    return result;
   }
   
   // 获取AI响应效率统计
   static async getAIResponseStats(user_id: number, days: number = 30) {
+    // 构建缓存键
+    const cacheKey = `aiResponseStats:${user_id}:${days}`;
+    
+    // 尝试从缓存获取
+    const cachedStats = await Cache.get(cacheKey);
+    if (cachedStats) {
+      return cachedStats;
+    }
+    
     const startDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     
-    // 获取指定时间范围内的所有对话
-    const conversations = await Conversation.findAll({
+    // 使用单个查询获取对话总数和触发动作的对话数，避免获取所有对话记录
+    const totalConversations = await Conversation.count({
       where: {
         user_id,
         created_at: {
@@ -209,16 +273,31 @@ class DataAnalysisService {
       }
     });
     
+    const actionTriggeredConversations = await Conversation.count({
+      where: {
+        user_id,
+        created_at: {
+          [Op.gt]: startDate
+        },
+        action_triggered: {
+          [Op.not]: null
+        }
+      }
+    });
+    
     // 计算触发动作的比例
-    const totalConversations = conversations.length;
-    const actionTriggeredConversations = conversations.filter(c => c.action_triggered !== null).length;
     const actionTriggerRate = totalConversations > 0 ? (actionTriggeredConversations / totalConversations) * 100 : 0;
     
-    return {
+    const result = {
       totalConversations,
       actionTriggeredConversations,
       actionTriggerRate: parseFloat(actionTriggerRate.toFixed(2))
     };
+    
+    // 设置缓存，过期时间为10分钟
+    await Cache.set(cacheKey, result, 600);
+    
+    return result;
   }
 }
 

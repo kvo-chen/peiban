@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.initBasicActions = exports.executeAction = exports.getAction = exports.deleteAction = exports.updateAction = exports.createAction = exports.getActions = void 0;
+exports.initBasicActions = exports.executeAction = exports.getActionById = exports.deleteAction = exports.updateAction = exports.createAction = exports.getActions = void 0;
 const Action_1 = __importDefault(require("../models/Action"));
 const sequelize_1 = require("sequelize");
 // 获取所有动作列表
@@ -45,7 +45,7 @@ const createAction = async (req, res) => {
     }
 };
 exports.createAction = createAction;
-// 更新动作信息
+// 更新动作
 const updateAction = async (req, res) => {
     try {
         const { id } = req.params;
@@ -102,8 +102,8 @@ const deleteAction = async (req, res) => {
     }
 };
 exports.deleteAction = deleteAction;
-// 获取单个动作信息
-const getAction = async (req, res) => {
+// 获取单个动作详情
+const getActionById = async (req, res) => {
     try {
         const { id } = req.params;
         // 检查动作是否存在
@@ -128,7 +128,7 @@ const getAction = async (req, res) => {
         res.error(500, '服务器错误');
     }
 };
-exports.getAction = getAction;
+exports.getActionById = getActionById;
 // 验证动作组合的步骤
 const validateCombinationSteps = async (steps) => {
     if (!Array.isArray(steps)) {

@@ -11,13 +11,13 @@ import {
   Button,
   Result
 } from 'antd';
-import { 
+import {
   MoonOutlined, 
   SunOutlined, 
   LayoutOutlined,
   BellOutlined,
   MessageOutlined,
-  RefreshOutlined,
+  ReloadOutlined,
   RestOutlined,
   SaveOutlined,
   SmileOutlined
@@ -74,7 +74,12 @@ const Settings: React.FC = () => {
     saveSettings('notifications', newState);
   };
   
-
+  // 切换声音
+  const toggleSoundEnabled = () => {
+    const newState = !soundEnabled;
+    setSoundEnabled(newState);
+    saveSettings('soundEnabled', newState);
+  };
   
   return (
     <div style={{ 
@@ -228,7 +233,7 @@ const Settings: React.FC = () => {
                   </Space>
                   <Switch 
                     checked={soundEnabled} 
-                    onChange={setSoundEnabled} 
+                    onChange={toggleSoundEnabled} 
                     disabled={!notifications}
                   />
                 </div>
@@ -245,7 +250,7 @@ const Settings: React.FC = () => {
           <Card 
             title={
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <RefreshOutlined /> <Text strong>刷新设置</Text>
+                <ReloadOutlined /> <Text strong>刷新设置</Text>
               </div>
             }
             style={{ 

@@ -43,7 +43,6 @@ const DeviceDetail: React.FC = () => {
   const [actions, setActions] = useState<Action[]>([]);
   const [deviceActions, setDeviceActions] = useState<DeviceAction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string>('');
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [form] = Form.useForm();
   const [chatMessage, setChatMessage] = useState<string>('');
@@ -63,7 +62,7 @@ const DeviceDetail: React.FC = () => {
         userId: 1 // 假设默认userId为1，实际应该从response中获取
       });
     } catch (err: any) {
-      setError('获取设备详情失败，请稍后重试');
+      message.error('获取设备详情失败，请稍后重试');
     }
   };
 
@@ -73,7 +72,7 @@ const DeviceDetail: React.FC = () => {
       const response = await actionApi.getActions();
       setActions(response.actions);
     } catch (err: any) {
-      setError('获取动作列表失败，请稍后重试');
+      message.error('获取动作列表失败，请稍后重试');
     }
   };
 
@@ -85,7 +84,7 @@ const DeviceDetail: React.FC = () => {
       const response = await deviceActionApi.getDeviceActions(id);
       setDeviceActions(response.deviceActions);
     } catch (err: any) {
-      setError('获取设备动作映射失败，请稍后重试');
+      message.error('获取设备动作映射失败，请稍后重试');
     }
   };
 
@@ -97,14 +96,13 @@ const DeviceDetail: React.FC = () => {
       const response = await chatApi.getChatHistory(id);
       setConversations(response.conversations.reverse());
     } catch (err: any) {
-      setError('获取对话历史失败，请稍后重试');
+      message.error('获取对话历史失败，请稍后重试');
     }
   };
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      setError('');
       
       await Promise.all([
         fetchDeviceDetail(),

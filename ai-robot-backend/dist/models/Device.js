@@ -53,6 +53,11 @@ Device.init({
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
+    // 添加索引，提高查询性能
+    indexes: [
+        { name: 'idx_device_user_id', fields: ['user_id'] },
+        { name: 'idx_device_status', fields: ['status'] }
+    ]
 });
 // 定义关联关系
 // 暂时注释掉关联关系，避免循环引用导致初始化失败

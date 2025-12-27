@@ -62,6 +62,17 @@ Conversation.init({
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at',
+    // 添加索引，提高查询性能
+    indexes: [
+        // 按用户查询对话
+        { name: 'idx_conversation_user_id', fields: ['user_id'] },
+        // 按设备查询对话
+        { name: 'idx_conversation_device_id', fields: ['device_id'] },
+        // 按用户和设备查询对话
+        { name: 'idx_conversation_user_device', fields: ['user_id', 'device_id'] },
+        // 按创建时间排序查询
+        { name: 'idx_conversation_created_at', fields: ['created_at', 'user_id', 'device_id'] }
+    ]
 });
 exports.default = Conversation;
 //# sourceMappingURL=Conversation.js.map

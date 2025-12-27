@@ -37,6 +37,7 @@ jest.mock('../models/Device', () => ({
   update: jest.fn(),
   destroy: jest.fn(),
   findByPk: jest.fn(),
+  findAndCountAll: jest.fn(),
 }));
 
 // 创建测试服务器
@@ -59,9 +60,12 @@ describe('Device Routes', () => {
         { id: 2, user_id: 1, device_name: '智能灯泡', device_type: 'light', status: 'offline', created_at: new Date(), updated_at: new Date() },
       ];
       
-      // 模拟Cache.get和Device.findAll
+      // 模拟Cache.get和Device.findAndCountAll
       (Cache.get as jest.Mock).mockResolvedValue(null);
-      (Device.findAll as jest.Mock).mockResolvedValue(mockDevices);
+      (Device.findAndCountAll as jest.Mock).mockResolvedValue({
+        count: mockDevices.length,
+        rows: mockDevices
+      });
       
       // 发送请求
       const response = await request(app).get('/api/devices');
@@ -75,18 +79,23 @@ describe('Device Routes', () => {
       expect(response.body.data.devices[1].id).toBe(2);
       expect(response.body.data.devices[1].device_name).toBe('智能灯泡');
       expect(Cache.get).toHaveBeenCalledTimes(1);
-      expect(Device.findAll).toHaveBeenCalledTimes(1);
+      expect(Device.findAndCountAll).toHaveBeenCalledTimes(1);
       expect(Cache.set).toHaveBeenCalledTimes(1);
     });
 
     it('should return devices from cache if available', async () => {
       // 模拟缓存数据
-      const mockDevices = [
-        { id: 1, user_id: 1, device_name: '智能音箱', device_type: 'speaker', status: 'online', created_at: new Date(), updated_at: new Date() },
-      ];
+      const mockCachedResponse = {
+        devices: [
+          { id: 1, user_id: 1, device_name: '智能音箱', device_type: 'speaker', status: 'online', created_at: new Date(), updated_at: new Date() },
+        ],
+        total: 1,
+        page: 1,
+        limit: 10
+      };
       
       // 模拟Cache.get返回缓存数据
-      (Cache.get as jest.Mock).mockResolvedValue(mockDevices);
+      (Cache.get as jest.Mock).mockResolvedValue(mockCachedResponse);
       
       // 发送请求
       const response = await request(app).get('/api/devices');
@@ -97,7 +106,7 @@ describe('Device Routes', () => {
       expect(response.body.data.devices).toHaveLength(1);
       expect(response.body.data.devices[0].id).toBe(1);
       expect(Cache.get).toHaveBeenCalledTimes(1);
-      expect(Device.findAll).not.toHaveBeenCalled();
+      expect(Device.findAndCountAll).not.toHaveBeenCalled();
     });
   });
 

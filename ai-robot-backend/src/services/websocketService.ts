@@ -83,6 +83,17 @@ class WebSocketService {
     });
   }
 
+  // 推送聊天消息
+  public sendChatMessage(userId: number, conversation: any) {
+    this.sendToUser(userId, {
+      type: 'chat_message',
+      data: {
+        ...conversation,
+        timestamp: new Date().toISOString()
+      }
+    });
+  }
+
   // 关闭WebSocket服务器
   public close() {
     this.wss.close();
