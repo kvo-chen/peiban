@@ -1,4 +1,4 @@
-module.exports = {
+export default {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
   moduleNameMapper: {
@@ -8,7 +8,27 @@ module.exports = {
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
   testMatch: ['<rootDir>/src/**/*.test.(ts|tsx)'],
   transform: {
-    '^.+\.(ts|tsx)$': 'ts-jest'
+    '^.+\.(ts|tsx)$': ['ts-jest', {
+      tsconfig: {
+        target: 'ES2022',
+        useDefineForClassFields: true,
+        lib: ['ES2022', 'DOM', 'DOM.Iterable'],
+        module: 'ESNext',
+        types: ['vite/client', 'jest', 'node'],
+        skipLibCheck: true,
+        moduleResolution: 'bundler',
+        allowImportingTsExtensions: true,
+        verbatimModuleSyntax: false,
+        moduleDetection: 'force',
+        noEmit: true,
+        jsx: 'react-jsx',
+        strict: true,
+        noUnusedLocals: true,
+        noUnusedParameters: true,
+        noFallthroughCasesInSwitch: true,
+        esModuleInterop: true
+      }
+    }]
   },
   collectCoverage: true,
   collectCoverageFrom: [

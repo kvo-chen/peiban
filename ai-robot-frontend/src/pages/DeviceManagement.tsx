@@ -28,7 +28,8 @@ import {
   DeleteRowOutlined
 } from '@ant-design/icons';
 import { deviceApi } from '../services/api';
-import type { Device } from '../types';
+import websocketService from '../services/websocketService';
+import type { Device, DeviceStatusUpdate } from '../types';
 
 const DeviceManagement: React.FC = () => {
   const [devices, setDevices] = useState<Device[]>([]);
@@ -76,6 +77,32 @@ const DeviceManagement: React.FC = () => {
   useEffect(() => {
     fetchDevices();
   }, [searchText, statusFilter, deviceTypeFilter, currentPage, pageSize]);
+
+  // 监听WebSocket设备状态更新事件
+  useEffect(() => {
+    const handleDeviceStatusUpdate = (data: DeviceStatusUpdate) => {
+      setDevices(prevDevices => {
+        return prevDevices.map(device => {
+          if (device.id === data.deviceId) {
+            message.info(`设备 ${device.deviceName} 状态更新为 ${data.status === 'online' ? '在线' : '离线'}`);
+            return {
+              ...device,
+              status: data.status
+            };
+          }
+          return device;
+        });
+      });
+    };
+
+    // 注册WebSocket事件监听器
+    websocketService.on('device_status_update', handleDeviceStatusUpdate);
+
+    // 组件卸载时移除事件监听器
+    return () => {
+      websocketService.off('device_status_update', handleDeviceStatusUpdate);
+    };
+  }, []);
 
   // 批量删除设备
   const handleBatchDelete = async () => {

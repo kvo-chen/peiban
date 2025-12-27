@@ -1,6 +1,31 @@
 // 导入@testing-library/jest-dom，提供额外的DOM匹配器
 import '@testing-library/jest-dom';
 
+// 模拟TextEncoder和TextDecoder
+class MockTextEncoder {
+  encode(input: string): Uint8Array {
+    return new TextEncoder().encode(input);
+  }
+}
+
+class MockTextDecoder {
+  decode(input: Uint8Array): string {
+    return new TextDecoder().decode(input);
+  }
+}
+
+// @ts-ignore
+if (typeof TextEncoder === 'undefined') {
+  // @ts-ignore
+  window.TextEncoder = MockTextEncoder;
+}
+
+// @ts-ignore
+if (typeof TextDecoder === 'undefined') {
+  // @ts-ignore
+  window.TextDecoder = MockTextDecoder;
+}
+
 // 模拟localStorage
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
@@ -34,18 +59,7 @@ Object.defineProperty(window, 'fetch', {
   value: mockFetch
 });
 
-// 模拟location
-Object.defineProperty(window, 'location', {
-  value: {
-    href: 'http://localhost:3000/',
-    pathname: '/',
-    search: '',
-    hash: '',
-    reload: jest.fn(),
-    replace: jest.fn()
-  },
-  writable: true
-});
+// 移除location模拟，使用React Testing Library的内置模拟
 
 // 模拟window.matchMedia
 Object.defineProperty(window, 'matchMedia', {

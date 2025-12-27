@@ -140,9 +140,13 @@ const Logs: React.FC = () => {
       ellipsis: {
         showTitle: false,
       },
-      render: (text: string) => (
-        <span title={text}>{text}</span>
-      ),
+      render: (text: string) => {
+        // 检查是否为内存地址格式，避免直接显示
+        const isMemoryAddress = /^\[0x[0-9a-fA-F]+(\s+0x[0-9a-fA-F]+)*\]$/.test(text);
+        return (
+          <span title={text}>{isMemoryAddress ? '设备日志（十六进制格式）' : text}</span>
+        );
+      },
     },
   ];
 

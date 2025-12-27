@@ -4,13 +4,18 @@ import { Layout, Spin, ConfigProvider } from 'antd';
 import Navbar from './components/Navbar';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import NotFound from './pages/NotFound';
+import ServerError from './pages/ServerError';
 // 使用React.lazy实现组件懒加载
 const DeviceManagement = lazy(() => import('./pages/DeviceManagement'));
 const DeviceDetail = lazy(() => import('./pages/DeviceDetail'));
 const DataAnalysis = lazy(() => import('./pages/DataAnalysis'));
 const Settings = lazy(() => import('./pages/Settings'));
 const Logs = lazy(() => import('./pages/Logs'));
+const ActionManagement = lazy(() => import('./pages/ActionManagement'));
+const DeviceGroupManagement = lazy(() => import('./pages/DeviceGroupManagement'));
 import './App.css';
+import websocketService from './services/websocketService';
 
 const { Content } = Layout;
 
@@ -56,6 +61,37 @@ function App() {
     
     return () => {
       window.removeEventListener('settingsUpdated', handleSettingsUpdate);
+    };
+  }, []);
+  
+  // 初始化WebSocket连接
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      websocketService.init();
+    }
+    
+    return () => {
+      websocketService.close();
+    };
+  }, []);
+  
+  // 监听登录状态变化
+  useEffect(() => {
+    const handleLogin = () => {
+      websocketService.init();
+    };
+    
+    const handleLogout = () => {
+      websocketService.close();
+    };
+    
+    window.addEventListener('login', handleLogin);
+    window.addEventListener('logout', handleLogout);
+    
+    return () => {
+      window.removeEventListener('login', handleLogin);
+      window.removeEventListener('logout', handleLogout);
     };
   }, []);
   
@@ -130,6 +166,8 @@ function App() {
                 {/* 公共路由 */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/404" element={<NotFound />} />
+                <Route path="/500" element={<ServerError />} />
                 
                 {/* 受保护路由 */}
                 <Route 
@@ -165,6 +203,22 @@ function App() {
                   } 
                 />
                 <Route 
+                  path="/actions" 
+                  element={
+                    <ProtectedRoute>
+                      <ActionManagement />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/device-groups" 
+                  element={
+                    <ProtectedRoute>
+                      <DeviceGroupManagement />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
                   path="/settings" 
                   element={
                     <ProtectedRoute>
@@ -173,8 +227,8 @@ function App() {
                   } 
                 />
                 
-                {/* 默认路由，重定向到登录页 */}
-                <Route path="*" element={<Navigate to="/login" replace />} />
+                {/* 默认路由，404页面 */}
+                <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
           </Content>

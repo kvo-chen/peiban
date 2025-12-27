@@ -18,6 +18,7 @@ import {
   PieChartOutlined,
   SearchOutlined
 } from '@ant-design/icons';
+import { analyticsApi } from '../services/api';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -443,20 +444,378 @@ const DataAnalysis: React.FC = () => {
     setLoading(true);
     
     try {
-      // 这里可以添加实际的查询逻辑，调用API获取数据
+      // 获取查询条件
       const values = form.getFieldsValue();
-      console.log('查询条件:', { ...values, chartType });
+      const { dateRange } = values;
       
-      // 模拟API请求延迟
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // 格式化日期
+      const params = {
+        startDate: dateRange?.[0]?.format('YYYY-MM-DD') || '',
+        endDate: dateRange?.[1]?.format('YYYY-MM-DD') || '',
+        chartType
+      };
       
-      // 目前使用模拟数据，后续可以替换为真实API调用
-      console.log('查询成功，使用模拟数据');
+      console.log('查询条件:', params);
+      
+      // 调用真实API获取数据
+      const [deviceUsageResponse, actionUsageResponse, conversationTrendResponse] = await Promise.all([
+        analyticsApi.getDeviceUsageStats(params),
+        analyticsApi.getActionUsageStats(params),
+        analyticsApi.getConversationTrend(params)
+      ]);
+      
+      console.log('查询成功，使用真实数据');
+      console.log('设备使用数据:', deviceUsageResponse);
+      console.log('动作使用数据:', actionUsageResponse);
+      console.log('对话趋势数据:', conversationTrendResponse);
+      
+      // 更新图表数据
+      updateChartsWithRealData(deviceUsageResponse, actionUsageResponse, conversationTrendResponse);
     } catch (error) {
       console.error('查询失败:', error);
     } finally {
       setLoading(false);
     }
+  };
+  
+  // 使用真实数据更新图表
+  const updateChartsWithRealData = (deviceUsageData: any, actionUsageData: any, conversationTrendData: any) => {
+    // 图表主题颜色
+    const colors = [
+      '#6366f1', // 主色
+      '#10b981', // 成功色
+      '#f59e0b', // 警告色
+      '#ef4444', // 错误色
+      '#3b82f6', // 信息色
+      '#8b5cf6', // 紫色
+      '#ec4899'  // 粉色
+    ];
+    
+    // 处理设备使用数据，适配柱状图
+    const deviceStats = deviceUsageData.deviceStats || mockData.deviceStats;
+    const barOption = {
+      title: {
+        text: '设备在线时长与动作次数',
+        left: 'center',
+        textStyle: {
+          fontSize: 16,
+          fontWeight: '600',
+          color: 'var(--color-text-primary)'
+        }
+      },
+      tooltip: {
+        trigger: 'axis',
+        axisPointer: {
+          type: 'cross',
+          crossStyle: {
+            color: 'var(--color-text-tertiary)'
+          }
+        },
+        backgroundColor: 'var(--color-bg)',
+        borderColor: 'var(--color-border)',
+        borderWidth: 1,
+        borderRadius: 8,
+        textStyle: {
+          color: 'var(--color-text-primary)'
+        }
+      },
+      legend: {
+        data: ['在线时长(小时)', '动作次数'],
+        top: 30,
+        textStyle: {
+          color: 'var(--color-text-secondary)'
+        },
+        backgroundColor: 'var(--color-bg-light)',
+        borderRadius: 8,
+        padding: [8, 16]
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true,
+        backgroundColor: 'var(--color-bg)'
+      },
+      xAxis: [
+        {
+          type: 'category',
+          data: deviceStats.map((item: any) => item.name),
+          axisPointer: {
+            type: 'shadow'
+          },
+          axisLine: {
+            lineStyle: {
+              color: 'var(--color-border)'
+            }
+          },
+          axisLabel: {
+            color: 'var(--color-text-secondary)'
+          },
+          splitLine: {
+            show: false
+          }
+        }
+      ],
+      yAxis: [
+        {
+          type: 'value',
+          name: '在线时长(小时)',
+          min: 0,
+          max: Math.max(...deviceStats.map((item: any) => item.onlineHours)) * 1.2,
+          interval: Math.ceil(Math.max(...deviceStats.map((item: any) => item.onlineHours)) * 1.2 / 5),
+          axisLine: {
+            lineStyle: {
+              color: 'var(--color-border)'
+            }
+          },
+          axisLabel: {
+            color: 'var(--color-text-secondary)'
+          },
+          splitLine: {
+            lineStyle: {
+              color: 'var(--color-border)',
+              type: 'dashed'
+            }
+          }
+        },
+        {
+          type: 'value',
+          name: '动作次数',
+          min: 0,
+          max: Math.max(...deviceStats.map((item: any) => item.totalActions)) * 1.2,
+          interval: Math.ceil(Math.max(...deviceStats.map((item: any) => item.totalActions)) * 1.2 / 5),
+          axisLine: {
+            lineStyle: {
+              color: 'var(--color-border)'
+            }
+          },
+          axisLabel: {
+            color: 'var(--color-text-secondary)'
+          },
+          splitLine: {
+            show: false
+          }
+        }
+      ],
+      series: [
+        {
+          name: '在线时长(小时)',
+          type: 'bar',
+          data: deviceStats.map((item: any) => item.onlineHours),
+          itemStyle: {
+            color: colors[0],
+            borderRadius: [4, 4, 0, 0]
+          },
+          emphasis: {
+            itemStyle: {
+              color: colors[0] + 'CC',
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(99, 102, 241, 0.3)'
+            }
+          }
+        },
+        {
+          name: '动作次数',
+          type: 'bar',
+          yAxisIndex: 1,
+          data: deviceStats.map((item: any) => item.totalActions),
+          itemStyle: {
+            color: colors[1],
+            borderRadius: [4, 4, 0, 0]
+          },
+          emphasis: {
+            itemStyle: {
+              color: colors[1] + 'CC',
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(16, 185, 129, 0.3)'
+            }
+          }
+        }
+      ]
+    };
+    
+    // 处理对话趋势数据，适配折线图
+    const dailyStats = conversationTrendData.dailyStats || mockData.dailyStats;
+    const lineOption = {
+      title: {
+        text: '每日动作执行次数',
+        left: 'center',
+        textStyle: {
+          fontSize: 16,
+          fontWeight: '600',
+          color: 'var(--color-text-primary)'
+        }
+      },
+      tooltip: {
+        trigger: 'axis',
+        backgroundColor: 'var(--color-bg)',
+        borderColor: 'var(--color-border)',
+        borderWidth: 1,
+        borderRadius: 8,
+        textStyle: {
+          color: 'var(--color-text-primary)'
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true,
+        backgroundColor: 'var(--color-bg)'
+      },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: dailyStats.map((item: any) => item.date),
+        axisLine: {
+          lineStyle: {
+            color: 'var(--color-border)'
+          }
+        },
+        axisLabel: {
+          color: 'var(--color-text-secondary)'
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'var(--color-border)',
+            type: 'dashed'
+          }
+        }
+      },
+      yAxis: {
+        type: 'value',
+        name: '动作次数',
+        axisLine: {
+          lineStyle: {
+            color: 'var(--color-border)'
+          }
+        },
+        axisLabel: {
+          color: 'var(--color-text-secondary)'
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'var(--color-border)',
+            type: 'dashed'
+          }
+        }
+      },
+      series: [
+        {
+          name: '动作次数',
+          data: dailyStats.map((item: any) => item.actions),
+          type: 'line',
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 8,
+          lineStyle: {
+            color: colors[2],
+            width: 3
+          },
+          itemStyle: {
+            color: colors[2],
+            borderColor: 'var(--color-bg)',
+            borderWidth: 2
+          },
+          areaStyle: {
+            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: colors[2] + '88' },
+              { offset: 1, color: colors[2] + '00' }
+            ])
+          },
+          emphasis: {
+            itemStyle: {
+              color: colors[2],
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(245, 158, 11, 0.5)'
+            }
+          }
+        }
+      ]
+    };
+    
+    // 处理动作使用数据，适配饼图
+    const actionTypeStats = actionUsageData.actionTypeStats || mockData.actionTypeStats;
+    const pieOption = {
+      title: {
+        text: '动作类型分布',
+        left: 'center',
+        textStyle: {
+          fontSize: 16,
+          fontWeight: '600',
+          color: 'var(--color-text-primary)'
+        }
+      },
+      tooltip: {
+        trigger: 'item',
+        backgroundColor: 'var(--color-bg)',
+        borderColor: 'var(--color-border)',
+        borderWidth: 1,
+        borderRadius: 8,
+        textStyle: {
+          color: 'var(--color-text-primary)'
+        },
+        formatter: '{b}: {c} ({d}%)'
+      },
+      legend: {
+        orient: 'vertical',
+        left: 'left',
+        textStyle: {
+          color: 'var(--color-text-secondary)'
+        },
+        backgroundColor: 'var(--color-bg-light)',
+        borderRadius: 8,
+        padding: [16, 16]
+      },
+      series: [
+        {
+          name: '动作类型',
+          type: 'pie',
+          radius: ['40%', '70%'],
+          center: ['60%', '50%'],
+          avoidLabelOverlap: false,
+          itemStyle: {
+            borderRadius: 8,
+            borderColor: 'var(--color-bg)',
+            borderWidth: 2
+          },
+          label: {
+            show: false,
+            position: 'center'
+          },
+          emphasis: {
+            label: {
+              show: true,
+              fontSize: 18,
+              fontWeight: '600',
+              color: 'var(--color-text-primary)'
+            },
+            itemStyle: {
+              shadowBlur: 10,
+              shadowOffsetX: 0,
+              shadowColor: 'rgba(0, 0, 0, 0.3)'
+            }
+          },
+          labelLine: {
+            show: false
+          },
+          data: actionTypeStats.map((item: any, index: number) => ({
+            ...item,
+            itemStyle: {
+              color: colors[index % colors.length]
+            }
+          })),
+        }
+      ]
+    };
+    
+    // 设置图表选项
+    barChart?.setOption(barOption);
+    lineChart?.setOption(lineOption);
+    pieChart?.setOption(pieOption);
   };
   
   // 图表渲染条件

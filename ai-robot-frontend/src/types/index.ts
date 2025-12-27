@@ -5,6 +5,25 @@ export interface User {
   email: string;
 }
 
+// WebSocket事件类型
+export interface WebSocketEvent {
+  type: string;
+  data: any;
+}
+
+// 设备状态更新事件
+export interface DeviceStatusUpdate {
+  deviceId: number;
+  status: 'online' | 'offline';
+  timestamp: string;
+}
+
+// 聊天消息事件
+export interface ChatMessageEvent {
+  conversation: any;
+  timestamp: string;
+}
+
 // 设备类型
 export interface Device {
   id: number;
@@ -43,6 +62,16 @@ export interface Conversation {
   message: string;
   response: string;
   actionTriggered: string | null;
+  createdAt: Date;
+}
+
+// 设备分组类型
+export interface DeviceGroup {
+  id: number;
+  userId: number;
+  name: string;
+  description: string;
+  devices: Device[];
   createdAt: Date;
 }
 

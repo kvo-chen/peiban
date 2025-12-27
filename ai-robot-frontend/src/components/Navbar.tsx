@@ -34,12 +34,16 @@ const Navbar: React.FC = () => {
     if (path === '/settings') return 'settings';
     if (path === '/login') return 'login';
     if (path === '/register') return 'register';
+    if (path === '/actions') return 'actions';
+    if (path === '/device-groups') return 'device-groups';
     return '';
   };
   
   // 导航菜单配置
   const navMenu = [
     { key: 'devices', label: '设备管理', icon: <UserOutlined />, path: '/' },
+    { key: 'device-groups', label: '设备分组管理', icon: <RobotOutlined />, path: '/device-groups' },
+    { key: 'actions', label: '动作管理', icon: <RobotOutlined />, path: '/actions' },
     { key: 'analysis', label: '数据分析', icon: <BarChartOutlined />, path: '/analysis' },
     { key: 'logs', label: '操作日志', icon: <ClockCircleOutlined />, path: '/logs' },
     { key: 'settings', label: '个性化设置', icon: <SettingOutlined />, path: '/settings' },

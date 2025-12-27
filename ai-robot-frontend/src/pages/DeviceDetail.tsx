@@ -44,11 +44,14 @@ const DeviceDetail: React.FC = () => {
   const [deviceActions, setDeviceActions] = useState<DeviceAction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
+  const [editForm] = Form.useForm();
   const [form] = Form.useForm();
   const [chatMessage, setChatMessage] = useState<string>('');
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [sending, setSending] = useState<boolean>(false);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [confirmLoading, setConfirmLoading] = useState<boolean>(false);
 
   // 获取设备详情
   const fetchDeviceDetail = async () => {
@@ -56,14 +59,78 @@ const DeviceDetail: React.FC = () => {
     
     try {
       const response = await deviceApi.getDevice(id);
-      // 添加缺少的userId属性
       setDevice({
         ...response.device,
-        userId: 1 // 假设默认userId为1，实际应该从response中获取
+        userId: 1 // 暂时使用默认值，后续从API获取真实userId
       });
     } catch (err: any) {
       message.error('获取设备详情失败，请稍后重试');
     }
+  };
+
+  // 打开编辑设备模态框
+  const handleEditDevice = () => {
+    if (device) {
+      editForm.setFieldsValue({
+        deviceName: device.deviceName,
+        deviceType: device.deviceType,
+        status: device.status
+      });
+      setIsEditModalOpen(true);
+    }
+  };
+
+  // 更新设备信息
+  const handleUpdateDevice = async (values: { deviceName: string; deviceType: string; status: 'online' | 'offline' }) => {
+    if (!id) return;
+    
+    try {
+      setConfirmLoading(true);
+      await deviceApi.updateDevice(id, values);
+      message.success('设备信息更新成功');
+      setIsEditModalOpen(false);
+      fetchDeviceDetail();
+    } catch (err: any) {
+      message.error('更新设备信息失败，请稍后重试');
+    } finally {
+      setConfirmLoading(false);
+    }
+  };
+
+  // 更改设备状态
+  const handleChangeStatus = async (status: 'online' | 'offline') => {
+    if (!id || !device) return;
+    
+    try {
+      await deviceApi.updateDevice(id, { status });
+      message.success(`设备状态已更新为${status === 'online' ? '在线' : '离线'}`);
+      setDevice(prev => prev ? { ...prev, status } : null);
+    } catch (err: any) {
+      message.error('更新设备状态失败，请稍后重试');
+    }
+  };
+
+  // 删除设备
+  const handleDeleteDevice = () => {
+    if (!id || !device) return;
+    
+    Modal.confirm({
+      title: '确认删除',
+      content: `确定要删除设备 ${device.deviceName} 吗？此操作不可恢复。`,
+      okText: '删除',
+      okType: 'danger',
+      cancelText: '取消',
+      onOk: async () => {
+        try {
+          await deviceApi.deleteDevice(id);
+          message.success('设备删除成功');
+          // 返回设备列表页面
+          window.location.href = '/';
+        } catch (err: any) {
+          message.error('删除设备失败，请稍后重试');
+        }
+      }
+    });
   };
 
   // 获取所有动作
@@ -318,6 +385,28 @@ const DeviceDetail: React.FC = () => {
             <Title level={2} style={{ margin: 0, color: 'var(--color-text-primary)' }}>
               {device.deviceName}
             </Title>
+          </Col>
+          <Col>
+            <Space>
+              <Button type="primary" onClick={handleEditDevice} style={{ fontWeight: '600' }}>
+                编辑设备
+              </Button>
+              <Button 
+                type="primary" 
+                danger={device.status === 'online'} 
+                onClick={() => handleChangeStatus(device.status === 'online' ? 'offline' : 'online')} 
+                style={{ fontWeight: '600' }}
+              >
+                {device.status === 'online' ? '设为离线' : '设为在线'}
+              </Button>
+              <Button 
+                danger 
+                onClick={handleDeleteDevice} 
+                style={{ fontWeight: '600' }}
+              >
+                删除设备
+              </Button>
+            </Space>
           </Col>
         </Row>
       </div>
@@ -640,6 +729,97 @@ const DeviceDetail: React.FC = () => {
               </Button>
               <Button 
                 onClick={() => setIsAddModalOpen(false)}
+                size="large"
+                block
+                style={{ height: '48px', fontSize: '16px', fontWeight: '600' }}
+              >
+                取消
+              </Button>
+            </Space>
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      {/* 编辑设备模态框 */}
+      <Modal
+        title="编辑设备信息"
+        open={isEditModalOpen}
+        onCancel={() => setIsEditModalOpen(false)}
+        footer={null}
+        centered
+        width={500}
+        closeIcon={false}
+      >
+        <Form
+          form={editForm}
+          layout="vertical"
+          onFinish={handleUpdateDevice}
+        >
+          <Form.Item
+            name="deviceName"
+            label={<span style={{ fontWeight: '600', fontSize: '14px' }}>设备名称</span>}
+            rules={[
+              { required: true, message: '请输入设备名称' },
+              { min: 2, message: '设备名称长度不能少于2个字符' },
+              { max: 50, message: '设备名称长度不能超过50个字符' }
+            ]}
+          >
+            <Input 
+              placeholder="请输入设备名称"
+              size="large"
+              style={{ height: '48px' }}
+            />
+          </Form.Item>
+          
+          <Form.Item
+            name="deviceType"
+            label={<span style={{ fontWeight: '600', fontSize: '14px' }}>设备类型</span>}
+            rules={[
+              { required: true, message: '请输入设备类型' },
+              { min: 2, message: '设备类型长度不能少于2个字符' },
+              { max: 30, message: '设备类型长度不能超过30个字符' }
+            ]}
+          >
+            <Input 
+              placeholder="请输入设备类型"
+              size="large"
+              style={{ height: '48px' }}
+            />
+          </Form.Item>
+          
+          <Form.Item
+            name="status"
+            label={<span style={{ fontWeight: '600', fontSize: '14px' }}>设备状态</span>}
+            rules={[{ required: true, message: '请选择设备状态' }]}
+          >
+            <Select 
+              placeholder="请选择设备状态"
+              size="large"
+              style={{ height: '48px' }}
+            >
+              <Option value="online">在线</Option>
+              <Option value="offline">离线</Option>
+            </Select>
+          </Form.Item>
+          
+          <Form.Item style={{ marginTop: '24px' }}>
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                size="large"
+                block
+                loading={confirmLoading}
+                style={{ 
+                  height: '48px',
+                  fontSize: '16px',
+                  fontWeight: '600'
+                }}
+              >
+                更新设备信息
+              </Button>
+              <Button 
+                onClick={() => setIsEditModalOpen(false)}
                 size="large"
                 block
                 style={{ height: '48px', fontSize: '16px', fontWeight: '600' }}

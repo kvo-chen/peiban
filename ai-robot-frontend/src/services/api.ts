@@ -50,8 +50,10 @@ export const authApi = {
     if (response.data.data && response.data.data.token) {
       localStorage.setItem('token', response.data.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.data.user));
+      // 触发登录事件，通知WebSocket服务建立连接
+      window.dispatchEvent(new Event('login'));
     }
-    return response.data;
+    return response.data.data;
   },
   
   // 注册
@@ -61,27 +63,31 @@ export const authApi = {
     if (response.data.data && response.data.data.token) {
       localStorage.setItem('token', response.data.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.data.user));
+      // 触发登录事件，通知WebSocket服务建立连接
+      window.dispatchEvent(new Event('login'));
     }
-    return response.data;
+    return response.data.data;
   },
   
   // 获取当前用户信息
   getCurrentUser: async () => {
     const response = await api.get('/auth/me');
-    return response.data;
+    return response.data.data;
   },
   
   // 登出
   logout: () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    // 触发登出事件，通知WebSocket服务关闭连接
+    window.dispatchEvent(new Event('logout'));
     window.location.href = '/login';
   },
   
   // 发送验证码
   sendCode: async (data: SendCodeRequest) => {
     const response = await api.post('/auth/send-code', data);
-    return response.data;
+    return response.data.data;
   },
   
   // 手机号验证码登录
@@ -91,8 +97,10 @@ export const authApi = {
     if (response.data.data && response.data.data.token) {
       localStorage.setItem('token', response.data.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.data.user));
+      // 触发登录事件，通知WebSocket服务建立连接
+      window.dispatchEvent(new Event('login'));
     }
-    return response.data;
+    return response.data.data;
   },
 };
 
@@ -102,7 +110,7 @@ export const deviceApi = {
   getDevices: async (params?: { search?: string; status?: string; deviceType?: string; page?: number; limit?: number }) => {
     const response = await api.get('/devices', { params });
     // 转换后端返回的蛇形命名法为前端使用的驼峰命名法
-    const devices = response.data.devices.map((device: any) => ({
+    const devices = response.data.data.devices.map((device: any) => ({
       id: device.id,
       deviceName: device.device_name,
       deviceType: device.device_type,
@@ -112,9 +120,9 @@ export const deviceApi = {
     }));
     return {
       devices,
-      total: response.data.total,
-      page: response.data.page,
-      limit: response.data.limit
+      total: response.data.data.total,
+      page: response.data.data.page,
+      limit: response.data.data.limit
     };
   },
   
@@ -133,7 +141,7 @@ export const deviceApi = {
   getDevice: async (id: string) => {
     const response = await api.get(`/devices/${id}`);
     // 转换后端返回的蛇形命名法为前端使用的驼峰命名法
-    const device = response.data.device;
+    const device = response.data.data.device;
     return {
       device: {
         id: device.id,
@@ -182,7 +190,7 @@ export const actionApi = {
   // 获取动作列表
   getActions: async () => {
     const response = await api.get('/actions');
-    return response.data;
+    return response.data.data;
   },
   
   // 创建动作
@@ -215,7 +223,7 @@ export const deviceActionApi = {
   // 获取设备的动作映射列表
   getDeviceActions: async (deviceId: string) => {
     const response = await api.get(`/device-actions/${deviceId}`);
-    return response.data;
+    return response.data.data;
   },
   
   // 添加设备动作映射
@@ -242,13 +250,97 @@ export const chatApi = {
   // 发送消息
   sendMessage: async (data: ChatRequest) => {
     const response = await api.post('/chat', data);
-    return response.data;
+    return response.data.data;
   },
   
   // 获取对话历史
   getChatHistory: async (deviceId: string, limit?: number) => {
     const response = await api.get(`/chat/${deviceId}`, { params: { limit } });
+    return response.data.data;
+  },
+};
+
+// 设备分组相关API
+export const deviceGroupApi = {
+  // 获取设备分组列表
+  getDeviceGroups: async () => {
+    const response = await api.get('/device-groups');
+    return response.data.data;
+  },
+  
+  // 创建设备分组
+  createDeviceGroup: async (data: { name: string; description: string }) => {
+    const response = await api.post('/device-groups', data);
     return response.data;
+  },
+  
+  // 获取单个设备分组
+  getDeviceGroup: async (id: string) => {
+    const response = await api.get(`/device-groups/${id}`);
+    return response.data;
+  },
+  
+  // 更新设备分组
+  updateDeviceGroup: async (id: string, data: { name: string; description: string }) => {
+    const response = await api.put(`/device-groups/${id}`, data);
+    return response.data;
+  },
+  
+  // 删除设备分组
+  deleteDeviceGroup: async (id: string) => {
+    const response = await api.delete(`/device-groups/${id}`);
+    return response.data;
+  },
+  
+  // 向设备分组添加设备
+  addDeviceToGroup: async (data: { groupId: string; deviceId: string }) => {
+    const response = await api.post('/device-groups/add-device', data);
+    return response.data;
+  },
+  
+  // 从设备分组移除设备
+  removeDeviceFromGroup: async (data: { groupId: string; deviceId: string }) => {
+    const response = await api.post('/device-groups/remove-device', data);
+    return response.data;
+  },
+};
+
+// 数据分析相关API
+export const analyticsApi = {
+  // 获取设备使用统计
+  getDeviceUsageStats: async (params?: { startDate?: string; endDate?: string; deviceId?: string }) => {
+    const response = await api.get('/analytics/device-usage', { params });
+    return response.data.data;
+  },
+  
+  // 获取动作使用统计
+  getActionUsageStats: async (params?: { startDate?: string; endDate?: string; deviceId?: string }) => {
+    const response = await api.get('/analytics/action-usage', { params });
+    return response.data.data;
+  },
+  
+  // 获取对话趋势
+  getConversationTrend: async (params?: { startDate?: string; endDate?: string; interval?: string }) => {
+    const response = await api.get('/analytics/conversation-trend', { params });
+    return response.data.data;
+  },
+  
+  // 获取设备激活率
+  getDeviceActivationRate: async (params?: { startDate?: string; endDate?: string }) => {
+    const response = await api.get('/analytics/device-activation-rate', { params });
+    return response.data.data;
+  },
+  
+  // 获取AI响应统计
+  getAIResponseStats: async (params?: { startDate?: string; endDate?: string }) => {
+    const response = await api.get('/analytics/ai-response-stats', { params });
+    return response.data.data;
+  },
+  
+  // 获取综合分析
+  getComprehensiveAnalysis: async (params?: { startDate?: string; endDate?: string }) => {
+    const response = await api.get('/analytics/comprehensive', { params });
+    return response.data.data;
   },
 };
 
@@ -257,7 +349,7 @@ export const logApi = {
   // 获取操作日志
   getOperationLogs: async (page: number = 1, limit: number = 10) => {
     const response = await api.get('/admin/logs', { params: { page, limit } });
-    return response.data;
+    return response.data.data;
   },
 };
 

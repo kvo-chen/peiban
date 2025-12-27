@@ -287,9 +287,8 @@ const Login: React.FC = () => {
                   transition: 'all var(--transition-fast)'
                 }}>手机号</span>}
                 rules={[
-                  // 暂时去掉必填验证，允许直接登录
-                  // { required: true, message: '请输入手机号' },
-                  // { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号' }
+                  { required: true, message: '请输入手机号' },
+                  { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号' }
                 ]}
                 style={{ marginBottom: '16px' }}
               >
@@ -328,9 +327,8 @@ const Login: React.FC = () => {
                   transition: 'all var(--transition-fast)'
                 }}>验证码</span>}
                 rules={[
-                  // 暂时去掉必填验证，允许直接登录
-                  // { required: true, message: '请输入验证码' },
-                  // { len: 6, message: '验证码长度为6位' }
+                  { required: true, message: '请输入验证码' },
+                  { len: 6, message: '验证码长度为6位' }
                 ]}
                 style={{ marginBottom: '24px' }}
               >
