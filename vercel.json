@@ -1,13 +1,20 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "installCommand": "npm install",
-  "outputDirectory": "dist",
-  "rootDirectory": "./ai-robot-frontend",
+  "builds": [
+    {
+      "src": "ai-robot-frontend/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "installCommand": "cd ai-robot-frontend && npm install",
+        "buildCommand": "cd ai-robot-frontend && npm run build",
+        "outputDirectory": "ai-robot-frontend/dist"
+      }
+    }
+  ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "/$1",
+      "dest": "/ai-robot-frontend/dist/$1",
       "headers": {
         "Cache-Control": "public, max-age=31536000, immutable"
       }
