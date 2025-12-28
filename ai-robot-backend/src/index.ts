@@ -26,11 +26,6 @@ import { generalLimiter, authLimiter, deviceLimiter, chatLimiter } from './middl
 // 加载环境变量
 dotenv.config();
 
-// 连接数据库并初始化基本动作
-connectDB().then(() => {
-  initBasicActions();
-});
-
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -78,15 +73,52 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 // 全局错误处理中间件（必须放在所有路由之后）
 app.use(errorHandler);
 
-// 创建HTTP服务器
-const server = createServer(app);
+// 初始化默认用户
+const initDefaultUser = async () => {
+  try {
+    const { sequelize } = require('./config/db');
+    const User = require('./models/User').default;
+    
+    // 检查默认用户是否存在
+    const defaultUser = await User.findOne({
+      where: { email: 'test@example.com' }
+    });
+    
+    if (!defaultUser) {
+      // 创建默认用户
+      await User.create({
+        username: 'testuser',
+        email: 'test@example.com',
+        password: 'password123',
+        role_id: 1,
+        status: 'active'
+      });
+      console.log('默认用户创建成功: test@example.com / password123');
+    }
+  } catch (error) {
+    console.error('初始化默认用户失败:', error);
+  }
+};
 
-// 初始化WebSocket服务
-websocketService.init(server);
-
-// 启动服务器
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Swagger API文档地址: http://localhost:${PORT}/api-docs`);
-  console.log(`WebSocket服务已启动，支持设备状态实时监控`);
+// 连接数据库并初始化基本动作和默认用户，然后启动服务器
+connectDB().then(async () => {
+  try {
+    await initBasicActions();
+    await initDefaultUser();
+  } catch (error) {
+    console.error('初始化失败:', error);
+  }
+  
+  // 创建HTTP服务器
+  const server = createServer(app);
+  
+  // 初始化WebSocket服务
+  websocketService.init(server);
+  
+  // 启动服务器
+  server.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+    console.log(`Swagger API文档地址: http://localhost:${PORT}/api-docs`);
+    console.log(`WebSocket服务已启动，支持设备状态实时监控`);
+  });
 });
