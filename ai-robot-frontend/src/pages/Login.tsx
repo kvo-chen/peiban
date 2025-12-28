@@ -124,7 +124,8 @@ const Login: React.FC = () => {
             background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)',
             backgroundClip: 'text',
             WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
+            WebkitTextFillColor: 'transparent',
+            textShadow: '0 0 4px rgba(99, 102, 241, 0.3)'
           }} />
           <h1 style={{ 
             fontSize: '28px',
@@ -133,7 +134,9 @@ const Login: React.FC = () => {
             background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%)',
             backgroundClip: 'text',
             WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent'
+            WebkitTextFillColor: 'transparent',
+            textShadow: '0 0 4px rgba(99, 102, 241, 0.3)',
+            letterSpacing: '0.5px'
           }}>AI陪伴机器人</h1>
         </div>
         

@@ -91,7 +91,7 @@ const Navbar: React.FC = () => {
       </div>
       
       {/* 桌面端菜单 */}
-      <div style={{ display: 'flex', flex: 1, justifyContent: 'flex-end', maxWidth: '800px' }} className="desktop-menu">
+      <div style={{ display: 'flex', flex: 1, justifyContent: 'flex-end' }} className="desktop-menu">
         {token ? (
           <Menu 
             theme="dark" 
@@ -106,8 +106,10 @@ const Navbar: React.FC = () => {
                     color: 'white', 
                     textDecoration: 'none',
                     fontSize: '14px',
-                    fontWeight: '500',
+                    fontWeight: '600',
                     transition: 'all var(--transition-fast)',
+                    textShadow: '0 0 2px rgba(0, 0, 0, 0.3)',
+                    letterSpacing: '0.3px',
                   }}>
                     {item.label}
                   </Link>
@@ -123,7 +125,9 @@ const Navbar: React.FC = () => {
                     style={{ 
                       color: 'white',
                       fontSize: '14px',
-                      fontWeight: '500',
+                      fontWeight: '600',
+                      textShadow: '0 0 2px rgba(0, 0, 0, 0.3)',
+                      letterSpacing: '0.3px',
                     }}
                     size="middle"
                   >
@@ -138,7 +142,8 @@ const Navbar: React.FC = () => {
               borderBottom: 'none',
               display: 'flex',
               justifyContent: 'flex-end',
-              gap: '16px',
+              gap: '8px',
+              overflow: 'visible',
             }}
           />
         ) : (
@@ -160,7 +165,7 @@ const Navbar: React.FC = () => {
               ),
               style: {
                 borderRadius: 'var(--radius-sm)',
-                margin: '0 4px',
+                margin: '0 2px',
                 transition: 'all var(--transition-fast)',
               }
             }))}
@@ -171,7 +176,8 @@ const Navbar: React.FC = () => {
               borderBottom: 'none',
               display: 'flex',
               justifyContent: 'flex-end',
-              gap: '16px',
+              gap: '8px',
+              overflow: 'visible',
             }}
           />
         )}
